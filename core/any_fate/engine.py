@@ -2443,8 +2443,10 @@ class AnyFateUniverse(FateUtils):
             CUS_LOGGER.info("已在办公室，打开模拟宇宙")
             key_mouse_manager.press("interact")
             return
-        CUS_LOGGER.info("前往黑塔办公室：打开地图")
-        key_mouse_manager.press("map")
+        # 4.7 起星轨航图无法拖到空间站，改为打开星际和平指南，
+        # 由 insect.json 的「指南切到旷宇纷争 → 指南选差分宇宙 → 指南前往模拟宇宙」直达模拟宇宙界面
+        CUS_LOGGER.info("前往模拟宇宙：打开星际和平指南")
+        key_mouse_manager.press("interastral_peace_guide")
 
     def goto_survival_room(self):
         key_mouse_manager.turn(15)
