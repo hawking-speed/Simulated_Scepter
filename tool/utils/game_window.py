@@ -177,3 +177,45 @@ def canonical_game_title(hwnd: int) -> str | None:
     if kind == "cloud":
         return "云·星穹铁道"
     return None
+
+
+def fix_local_window_size(hwnd: int, width: int = 1920, height: int = 1080) -> str:
+    """Try to bring a local game window to a width x height client area.
+
+    游戏有时会无视注册表以全屏/错误尺寸启动（实测 4.7 掉线重启后出现过 2560x1600 全屏）。
+    全屏（窗口与客户区同尺寸、无边框）时先发 Alt+Enter 切回窗口模式，再按边框厚度把客户区设为目标尺寸。
+    调用方需已是管理员进程（游戏以管理员运行，UIPI 会拦截低权限进程的按键与 SetWindowPos）。
+
+    Returns:
+        描述本次做了什么的文本，便于写日志。
+    """
+    import time
+
+    import win32api
+
+    actions = []
+    with _physical_pixel_context():
+        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+        _, _, client_w, client_h = win32gui.GetClientRect(hwnd)
+        if (right - left, bottom - top) == (client_w, client_h):
+            try:
+                win32gui.SetForegroundWindow(hwnd)
+            except Exception:
+                pass
+            win32api.keybd_event(win32con.VK_MENU, 0x38, 0, 0)
+            win32api.keybd_event(win32con.VK_RETURN, 0x1C, 0, 0)
+            win32api.keybd_event(win32con.VK_RETURN, 0x1C, win32con.KEYEVENTF_KEYUP, 0)
+            win32api.keybd_event(win32con.VK_MENU, 0x38, win32con.KEYEVENTF_KEYUP, 0)
+            actions.append("全屏→Alt+Enter")
+            time.sleep(2.5)
+            left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+            _, _, client_w, client_h = win32gui.GetClientRect(hwnd)
+        border_w = (right - left) - client_w
+        border_h = (bottom - top) - client_h
+        win32gui.SetWindowPos(
+            hwnd, 0, max(0, left), max(0, top), width + border_w, height + border_h,
+            win32con.SWP_NOZORDER | win32con.SWP_NOACTIVATE,
+        )
+        actions.append(f"客户区 {client_w}x{client_h}→{width}x{height}")
+    time.sleep(1.5)
+    return "，".join(actions)

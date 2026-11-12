@@ -75,10 +75,21 @@ class ScriptKernel(StateKernel):
         # 先发一次空按键绕开 Windows 的后台抢焦点限制，再等窗口出现
         set_forground()
         deadline = time.monotonic() + self.window_timeout
+        size_fix_tried = False
         while not get_global_stop_flag():
             window = get_foreground_game_window()
             if window is not None:
                 if not is_supported_resolution(window.kind, window.client_width, window.client_height):
+                    if window.kind == "local" and not size_fix_tried:
+                        # 本地窗口尺寸不对时先自动纠正一次，纠正后仍不对再报错
+                        size_fix_tried = True
+                        from tool.utils.game_window import fix_local_window_size
+                        try:
+                            done = fix_local_window_size(window.hwnd)
+                            CUS_LOGGER.warning(f"游戏窗口为 {window.client_width} × {window.client_height}，已自动纠正：{done}")
+                        except Exception as error:
+                            CUS_LOGGER.warning(f"自动纠正游戏窗口尺寸失败：{error}")
+                        continue
                     raise ValueError(
                         f"当前游戏窗口为 {window.client_width} × {window.client_height}，"
                         f"请调整到 1920 × 1080 后重新运行。"
