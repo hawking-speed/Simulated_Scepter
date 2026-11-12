@@ -403,15 +403,25 @@ class IronBloodUniverse(AnyFateUniverse):
                     if len(best_path)>1:
                         if best_path[1]['idx'] == self.replace_idx or self.plane_floor == 3:
                             CUS_LOGGER.debug(f"期权最佳代替节点{self.replace_idx},替换后最佳路径{best_path}")
-                            if cheating:
+                            # 4.7 起「作弊」按钮/次数识别可能失效：同一重投界面连续 2 次点不到就放弃作弊，
+                            # 否则会每轮都 return 卡在重投界面（实测一次卡 4~7 分钟）
+                            cheat_fails = getattr(self, "_cheat_click_fails", 0)
+                            if cheating and cheat_fails < 2:
                                 self.cheat_target = "肉体帝侯"
-                                if not self.click_text(text="作弊", box=[1261, 761, 1321, 792], allow_fail=True):
-                                    CUS_LOGGER.warning("没点到「作弊」按钮，等下一轮重新决策")
+                                if self.click_text(text="作弊", box=[1261, 761, 1321, 792], allow_fail=True):
+                                    self._cheat_click_fails = 0
+                                else:
+                                    self._cheat_click_fails = cheat_fails + 1
+                                    CUS_LOGGER.warning(f"没点到「作弊」按钮（第{cheat_fails + 1}次），等下一轮重新决策")
                                 return
-                            elif redo:
+                            if cheating:
+                                CUS_LOGGER.warning("连续没点到「作弊」按钮，本次重投界面放弃作弊")
+                                self.cheat_target = None
+                            if redo:
                                 self.click_text(text="重投", box=[1599, 760, 1657, 795])
                                 return
         self.click_text(text="确认效果", box=[1584, 961, 1687, 994])
+        self._cheat_click_fails = 0
         self.init_map()
         self.mini_state = 1
 
