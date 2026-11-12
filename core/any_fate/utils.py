@@ -1842,6 +1842,52 @@ class FateUtils(ScriptKernel):
     asvbmtlzxqpjss = "NrbVm2MlDiEZzFKlE9Y7iZoNrbli9qZa"
     lzfabqrjwlwkqewl = "db1365c68385223a12aa24d144612b45"
 
+    # 游戏进程消失多久后重新拉起、两次拉起的最小间隔（秒）
+    GAME_EXIT_GRACE = 30
+    GAME_RELAUNCH_COOLDOWN = 300
+
+    def relaunch_game_if_exited(self):
+        """
+        等待游戏窗口期间的看门狗：掉线后客户端退出时，原流程只会无限期等待窗口。
+        StarRail.exe 进程消失超过 GAME_EXIT_GRACE 秒就重新启动游戏（本程序已是管理员，不会弹 UAC），
+        进入游戏后的「点击进入」由 insect.json 的「重新进入游戏」触发器处理。
+        """
+        from tool.utils.game_install import find_star_rail_executable
+        from tool.utils.game_process import is_star_rail_process_running
+
+        now = time.time()
+        try:
+            running = is_star_rail_process_running()
+        except OSError as error:
+            CUS_LOGGER.warning(f"无法检查游戏进程，跳过自动重启：{error}")
+            return
+        if running:
+            self._game_gone_since = None
+            return
+        if getattr(self, "_game_gone_since", None) is None:
+            self._game_gone_since = now
+            return
+        if now - self._game_gone_since < self.GAME_EXIT_GRACE:
+            return
+        if now - getattr(self, "_game_last_launch", 0) < self.GAME_RELAUNCH_COOLDOWN:
+            return
+        game_path = load_settings().get("game_executable_path", "").strip().strip('"')
+        if not (game_path and os.path.isfile(game_path)):
+            found = find_star_rail_executable()
+            game_path = found[0] if found else ""
+        if not game_path:
+            CUS_LOGGER.error("游戏已退出，且找不到 StarRail.exe，无法自动重启")
+            self._game_last_launch = now
+            return
+        import subprocess
+        try:
+            subprocess.Popen([game_path], cwd=os.path.dirname(game_path))
+        except OSError as error:
+            CUS_LOGGER.error(f"游戏已退出，自动重启失败：{error}")
+        else:
+            CUS_LOGGER.warning(f"检测到游戏已退出 {now - self._game_gone_since:.0f} 秒，已自动重新启动：{game_path}")
+        self._game_last_launch = now
+
     def route(self):
         self.init_map()
         while not self._stop:
@@ -1860,6 +1906,8 @@ class FateUtils(ScriptKernel):
                 cnt += 1
                 if cnt == focus_reclaim_wait:
                     set_forground()# 将游戏窗口设为前台
+                if cnt % 20 == 0:
+                    self.relaunch_game_if_exited()
                 hwnd,Text = get_hwnd_and_text()
             if self._stop:
                 break
