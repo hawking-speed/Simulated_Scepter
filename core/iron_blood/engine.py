@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+import re
 import shutil
 import time
 
@@ -395,7 +396,18 @@ class IronBloodUniverse(AnyFateUniverse):
                     # 作弊次数 0（含没解锁作弊功能）就没法作弊，别去点那个不存在的「作弊」按钮
                     cheating = False
                 redo=not self.check("zero",1671,722, threshold=0.95)
-                CUS_LOGGER.debug(f"决策可用动作{cheating},{redo}")
+                # 4.7：未解锁作弊时界面只有居中的「重投」按钮，次数文字移到 [1387,710] 附近，
+                # 旧位置的「0」图标检查会误判为还能重投，导致每轮点 0 次的「重投」卡死。
+                # 直接读「重投次数N / 作弊次数N」文字，读到就以它为准。
+                rows = self.ts.find_with_box(box=[1250, 690, 1760, 750], forward=True, re_screen=False)
+                counts_text = "".join(row.get("raw_text", "") for row in rows if isinstance(row, dict))
+                redo_match = re.search(r"重投次数\D*(\d+)", counts_text)
+                cheat_match = re.search(r"作弊次数\D*(\d+)", counts_text)
+                if redo_match:
+                    redo = int(redo_match.group(1)) > 0
+                if cheat_match:
+                    cheating = cheating and int(cheat_match.group(1)) > 0
+                CUS_LOGGER.debug(f"决策可用动作{cheating},{redo}（次数文字：{counts_text}）")
                 if cheating or redo:
                     best_path, best_weight, best_end_idx, self.replace_idx, delta, discounted_delta = evaluate_best_single_replacement(
                         self.nodes, self.edges, self.start_nodes['idx'], t=0.3 if self.plane_floor == 3 else 0.2)
