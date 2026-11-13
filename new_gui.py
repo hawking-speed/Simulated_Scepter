@@ -52,6 +52,7 @@ from tool.script_tools import capture_sample, debug_events
 from tool.settings import load_default_settings, load_settings, update_settings
 from tool.thread import ThreadWithException
 from tool.utils.game_install import (
+    GAME_LAUNCH_ARGS,
     find_star_rail_executable,
     is_global_star_rail_executable,
 )
@@ -587,7 +588,9 @@ class MainWindow(QMainWindowLog):
                     return
                 self.save_game_path_config()
                 try:
-                    subprocess.Popen([game_path], cwd=os.path.dirname(game_path))
+                    subprocess.Popen([game_path, *GAME_LAUNCH_ARGS], cwd=os.path.dirname(game_path))
+                    from tool.utils.game_window import ensure_game_window_size_async
+                    ensure_game_window_size_async(logger=CUS_LOGGER)
                 except OSError as error:
                     CUS_LOGGER.error("无法启动崩坏：星穹铁道：%s", error, exc_info=True)
                     QMessageBox.warning(self, "无法启动游戏", f"启动 StarRail.exe 失败：{error}")

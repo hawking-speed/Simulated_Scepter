@@ -219,3 +219,32 @@ def fix_local_window_size(hwnd: int, width: int = 1920, height: int = 1080) -> s
         actions.append(f"客户区 {client_w}x{client_h}→{width}x{height}")
     time.sleep(1.5)
     return "，".join(actions)
+
+
+def ensure_game_window_size_async(timeout: float = 600, logger=None) -> None:
+    """拉起游戏后在后台线程里盯住窗口 timeout 秒：期间只要客户区不是 1920x1080 就纠正。
+
+    4.7 实测游戏常无视注册表与 -screen-* 参数以 2560x1600 全屏启动，只能启动后纠正。
+    """
+    import threading
+    import time
+
+    def worker():
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            time.sleep(5)
+            window = find_game_window(prefer_foreground=False)
+            if window is None or window.kind != "local":
+                continue
+            if is_supported_resolution(window.kind, window.client_width, window.client_height):
+                # 启动画面是 1920x1080，进入加载后游戏还可能自己切成全屏，所以不提前退出，盯满 timeout
+                continue
+            try:
+                done = fix_local_window_size(window.hwnd)
+                if logger:
+                    logger.warning(f"游戏窗口为 {window.client_width} × {window.client_height}，已自动纠正：{done}")
+            except Exception as error:
+                if logger:
+                    logger.warning(f"纠正游戏窗口尺寸失败，稍后重试：{error}")
+
+    threading.Thread(target=worker, name="纠正游戏窗口", daemon=True).start()

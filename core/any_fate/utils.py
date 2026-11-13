@@ -1852,7 +1852,7 @@ class FateUtils(ScriptKernel):
         StarRail.exe 进程消失超过 GAME_EXIT_GRACE 秒就重新启动游戏（本程序已是管理员，不会弹 UAC），
         进入游戏后的「点击进入」由 insect.json 的「重新进入游戏」触发器处理。
         """
-        from tool.utils.game_install import find_star_rail_executable
+        from tool.utils.game_install import GAME_LAUNCH_ARGS, find_star_rail_executable
         from tool.utils.game_process import is_star_rail_process_running
 
         now = time.time()
@@ -1881,11 +1881,13 @@ class FateUtils(ScriptKernel):
             return
         import subprocess
         try:
-            subprocess.Popen([game_path], cwd=os.path.dirname(game_path))
+            subprocess.Popen([game_path, *GAME_LAUNCH_ARGS], cwd=os.path.dirname(game_path))
         except OSError as error:
             CUS_LOGGER.error(f"游戏已退出，自动重启失败：{error}")
         else:
             CUS_LOGGER.warning(f"检测到游戏已退出 {now - self._game_gone_since:.0f} 秒，已自动重新启动：{game_path}")
+            from tool.utils.game_window import ensure_game_window_size_async
+            ensure_game_window_size_async(logger=CUS_LOGGER)
         self._game_last_launch = now
 
     def route(self):

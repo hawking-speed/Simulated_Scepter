@@ -246,3 +246,9 @@ def _path_region(game_path: Path) -> bool | None:
         return _game_region(config_path.read_text(encoding="utf-8", errors="ignore"))
     except OSError:
         return None
+
+
+# 启动游戏时附带的 Unity 窗口参数：游戏偶尔无视注册表以 2560x1600 等全屏启动，
+# 而识别坐标要求客户区严格 1920x1080，所以启动时显式指定窗口模式与尺寸。
+GAME_LAUNCH_ARGS = ("-screen-fullscreen", "0", "-window-mode", "windowed",
+                    "-screen-width", "1920", "-screen-height", "1080")
