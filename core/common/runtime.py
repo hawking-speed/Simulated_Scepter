@@ -161,7 +161,35 @@ class ScriptKernel(StateKernel):
         with self._screen_lock:
             if self._stop:
                 return self.screen
+            self._refresh_window_origin()
             return super().get_screen()
+
+    def _refresh_window_origin(self):
+        """
+        窗口位置只在初始化时读过一次；游戏启动后自己切全屏、被纠正回窗口，或掉线重启换了窗口时，
+        截图和点击就会对不上（实测 4.7 一直卡在登录页：触发器能命中却从不执行）。每次截图前复核一次。
+        """
+        if self.hwnd is None:
+            return
+        try:
+            x0, y0, _, _ = get_client_screen_rect(self.hwnd)
+        except Exception:
+            from tool.utils.game_window import find_game_window
+            window = find_game_window(prefer_foreground=False)
+            if window is None:
+                return
+            self.hwnd = window.hwnd
+            try:
+                x0, y0, _, _ = get_client_screen_rect(self.hwnd)
+            except Exception:
+                return
+        if (x0, y0) == (self.x0, self.y0):
+            return
+        CUS_LOGGER.warning(f"游戏窗口位置由 ({self.x0}, {self.y0}) 变为 ({x0}, {y0})，已同步截图与点击坐标")
+        self.x0, self.y0 = x0, y0
+        self.x1, self.y1 = x0 + self.xx, y0 + self.yy
+        self.full = x0 == 0 and y0 == 0
+        key_mouse_manager.set_screen_params(self.x1, self.y1, self.xx, self.yy)
 
     def click_text(self, text, delay=0, box=None, after_delay=0, click=True,
                    find_all=False, warning=True, ocr_line=True,
