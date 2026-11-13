@@ -1543,8 +1543,10 @@ class FateUtils(ScriptKernel):
             CUS_LOGGER.warning("金血…出自「毁灭」。我们早已失去…奢求温暖的权利。")
             return False
         # 复杂的定位、寻路过程
-        go_direct = 2
         go_time = random.uniform(0.5, 0.75)
+        # 逐级绕障：交易房中间的桌子等大障碍，原来左右各平移 0.5~0.75 秒绕不过去，反复卡到超时暂离
+        stuck_tries = 0
+        STUCK_MAX_TRIES = 4
         retry_time = 0
         has_not_found_red = False
         skill_num = match_skill_numbers_in_region(self.get_screen())
@@ -1656,7 +1658,7 @@ class FateUtils(ScriptKernel):
                     if self.target_type == 3:
                         sprint()
                         self.is_sprinting = 0
-                    go_direct = 2
+                    stuck_tries = 0  # 到达路径点后重置绕障次数
                 else:
                     key_mouse_manager.keyUp("move_w")
                     break
@@ -1678,15 +1680,15 @@ class FateUtils(ScriptKernel):
             if is_stuck:
                 CUS_LOGGER.debug(f"自身坐标{self.now_loc}，目标坐标{self.target_loc}")
                 CUS_LOGGER.info(f"昔日的伙伴已尽数成为仇敌。无尽的杀戮令{factor}不知苦痛为何物，沉痛的虚无几乎将{factor}吞噬，逼迫{factor}停止抗争——但{factor}坚持了下来。")
-                ts = " da"
-                if go_direct > 0:
-                    CUS_LOGGER.debug(f"尝试绕过障碍向{ts[go_direct]}")
+                if stuck_tries < STUCK_MAX_TRIES:
+                    stuck_tries += 1
+                    # 左右交替，平移时长逐次递增：换边时先抵消上一次位移再多走一段
+                    side = "a" if stuck_tries % 2 == 1 else "d"
+                    strafe = go_time * (0.8 * stuck_tries + 0.6) + random.uniform(0, 0.3)
+                    CUS_LOGGER.debug(f"第{stuck_tries}次尝试绕过障碍：后退后向{side}平移{strafe:.2f}秒")
                     key_mouse_manager.keyUp("move_w")
-                    key_mouse_manager.press("move_s", 0.35)
-                    if go_direct == 2:
-                        key_mouse_manager.press(f"move_{ts[go_direct]}", go_time)
-                    else:
-                        key_mouse_manager.press(f"move_{ts[go_direct]}", go_time + random.uniform(0, 0.5))
+                    key_mouse_manager.press("move_s", 0.35 + 0.15 * stuck_tries)
+                    key_mouse_manager.press(f"move_{side}", strafe)
                     key_mouse_manager.keyDown("move_w")
                     self.get_screen()
                     if not self.get_loc():
@@ -1694,7 +1696,6 @@ class FateUtils(ScriptKernel):
                         return
                     # 成功绕过障碍后清空位置记录
                     last_locs.clear()
-                    go_direct -= 1
                 else:
                     CUS_LOGGER.info("「毁灭」早已汇成烈阳，在这具脆弱的躯壳中翻涌，理智在纪元开端便燃烧殆尽…")
                     key_mouse_manager.keyUp("move_w")
