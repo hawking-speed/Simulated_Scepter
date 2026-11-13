@@ -1916,6 +1916,8 @@ class FateUtils(ScriptKernel):
                 if self.last_update_time is not None and time.time()-self.last_update_time>7 and self.state=="battle":
                     if self.ts.nothing:
                         self.update_state("battle")
+                elif "狭间" in getattr(self, "area", "") and hasattr(self, "handle_rift_ui"):
+                    self.handle_rift_ui()
                 else:
                     CUS_LOGGER.warning("匹配不到任何图标与简中文本标志")
         CUS_LOGGER.info("演算世界：翁法罗斯已从缓冲区销毁。")

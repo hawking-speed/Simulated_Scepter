@@ -292,6 +292,14 @@ class AnyFateUniverse(FateUtils):
                     ocr_text = self.ts.find_with_box(box=[55, 12, 164, 40],forward=True,re_screen=False)
                     self.area=merge_text(ocr_text) if len(ocr_text) else ""
                     CUS_LOGGER.debug(f"当前区域{self.area}")
+                elif "首领" in self.area or "狭间" in self.area:
+                    # 4.7：首领房「觐见装置」交互后会传送到「命途狭间」，区域名变了但 self.area 不会自动刷新
+                    ocr_text = self.ts.find_with_box(box=[55, 12, 164, 40], forward=True, re_screen=False)
+                    label = merge_text(ocr_text) if len(ocr_text) else ""
+                    if label and label != self.area and ("狭间" in label or "狭间" in self.area):
+                        CUS_LOGGER.info(f"区域由「{self.area}」变为「{label}」")
+                        self.area = label
+                        self.rift_steps = 0
                 # 当前节点为祝福扑满且非精英区域时，根据开关决定切人策略
                 pig = self.is_pig_node() and "战斗" in self.area
                 if pig:
@@ -346,7 +354,10 @@ class AnyFateUniverse(FateUtils):
                 if (("战斗" in self.area or "精英" in self.area or "首领" in self.area)
                         and self.loaded_map_root not in (None, battle_map_root)):
                     self.init_map()
-                if "战斗" in self.area:
+                if "狭间" in self.area:
+                    self.navigate_rift()
+                    return 1
+                elif "战斗" in self.area:
                     if self.navigate_battle():
                         return 1
                 elif "精英" in self.area or "首领" in self.area:
@@ -393,6 +404,118 @@ class AnyFateUniverse(FateUtils):
             return state
         else:
             return 0
+
+    # ---------- 4.7「命途狭间」 ----------
+    # 流程（玩家实测）：走向发白光的菱形 → 出现对话，一直点那个选项 → 再走向白色菱形框 → 点「离开」。
+    # 区域里没有小地图目标，只能靠画面里的白光菱形导航。
+    RIFT_EXCLUDE = (
+        (0, 0, 460, 460),        # 左上区域名/小地图
+        (1380, 0, 1920, 160),    # 右上图标/进行中
+        (1520, 180, 1920, 760),  # 右侧队伍
+        (1400, 760, 1920, 1080), # 右下技能
+        (0, 960, 520, 1080),     # 左下 UID
+        (860, 420, 1060, 1000),  # 角色本体
+    )
+
+    RIFT_BEACON_THRESHOLD = 0.75
+
+    def find_rift_beacon(self, screen):
+        """
+        在画面里找发白光的四角星菱形（模板 resource/imgs/rift_beacon.png，多尺度匹配）。
+        返回 (cx, cy, 尺度) 或 None。实测真目标得分 1.0，其余画面 ≤0.68。
+        """
+        tpl = find_image_by_name("rift_beacon")
+        if tpl is None:
+            CUS_LOGGER.error("缺少命途狭间菱形模板 rift_beacon.png")
+            return None
+        img = screen.copy()
+        for x1, y1, x2, y2 in self.RIFT_EXCLUDE[:-1]:  # 角色本体不遮，菱形可能就在正前方
+            if x1 >= 1520 and y1 >= 180:
+                continue  # 队伍栏区域里也可能出现菱形，模板匹配不会误认头像
+            img[y1:y2, x1:x2] = 0
+        best = (0.0, None)
+        for scale in (0.5, 0.7, 0.85, 1.0, 1.25, 1.6, 2.0, 2.6, 3.4):
+            t = cv.resize(tpl, None, fx=scale, fy=scale)
+            result = cv.matchTemplate(img, t, cv.TM_CCOEFF_NORMED)
+            _, value, _, loc = cv.minMaxLoc(result)
+            if value > best[0]:
+                best = (value, (loc[0] + t.shape[1] / 2, loc[1] + t.shape[0] / 2, scale))
+        CUS_LOGGER.debug(f"命途狭间菱形匹配度{best[0]:.3f} {best[1]}")
+        return best[1] if best[0] >= self.RIFT_BEACON_THRESHOLD else None
+
+    def save_rift_screen(self, tag):
+        """命途狭间的界面还没完全摸清，关键帧存档便于复核与补触发器。"""
+        try:
+            folder = os.path.join(PATHS["temp"], "rift")
+            os.makedirs(folder, exist_ok=True)
+            cv.imencode(".jpg", self.screen)[1].tofile(
+                os.path.join(folder, f"{time.strftime('%m%d_%H%M%S')}_{tag}.jpg"))
+        except Exception as error:
+            CUS_LOGGER.debug(f"保存命途狭间截图失败：{error}")
+
+    def navigate_rift(self):
+        """大世界状态下的命途狭间寻路：有交互提示就交互，否则对准白光菱形往前走。"""
+        self.rift_steps = getattr(self, "rift_steps", 0) + 1
+        if self.check("interact", mask=MASK["interact_icon"], threshold=0.96, fresh=True):
+            CUS_LOGGER.info("命途狭间：出现交互提示，交互")
+            self.save_rift_screen("interact")
+            key_mouse_manager.keyUp("move_w")
+            key_mouse_manager.press("interact", force=True)
+            key_mouse_manager.wait()
+            time.sleep(1.5)
+            self.last_interact_time = time.time()
+            return
+        screen = self.get_screen()
+        beacon = self.find_rift_beacon(screen)
+        if self.rift_steps == 1:
+            self.save_rift_screen("enter")
+        if beacon is None:
+            CUS_LOGGER.debug("命途狭间：画面里没找到白光菱形，转身寻找")
+            key_mouse_manager.keyUp("move_w")
+            key_mouse_manager.turn(40)
+            key_mouse_manager.wait()
+            return
+        cx, cy, scale = beacon
+        offset = cx - 960
+        CUS_LOGGER.debug(f"命途狭间：白光菱形位于({cx:.0f},{cy:.0f}) 尺度{scale}，水平偏移{offset:.0f}")
+        if abs(offset) > 60:
+            key_mouse_manager.keyUp("move_w")
+            key_mouse_manager.turn(offset * 0.05)
+            key_mouse_manager.wait()
+        key_mouse_manager.keyDown("move_w")
+        key_mouse_manager.sleep(1.0)
+        key_mouse_manager.keyUp("move_w")
+        key_mouse_manager.wait()
+
+    def handle_rift_ui(self):
+        """
+        命途狭间里的对话/弹窗（没有任何触发器命中时由 route 调用）：
+        有「离开」点「离开」；否则点最下面一个选项；都没有就点击推进对话。
+        返回 True 表示已处理。
+        """
+        last = getattr(self, "_rift_ui_time", 0)
+        if time.time() - last < 1.2:
+            return True
+        self._rift_ui_time = time.time()
+        rows = self.ts.find_with_box(box=[960, 200, 1920, 1000], forward=True, re_screen=True)
+        rows = [r for r in rows if isinstance(r, dict) and len((r.get("raw_text") or "").strip()) >= 2]
+        texts = [r["raw_text"] for r in rows]
+        self.save_rift_screen("ui")
+        leave = [r for r in rows if "离开" in r["raw_text"]]
+        if leave:
+            box = leave[-1]["box"]
+            CUS_LOGGER.info(f"命途狭间：点击「离开」 {texts}")
+            key_mouse_manager.click_point((box[0] + box[2]) // 2, (box[1] + box[3]) // 2, box=box)
+        elif rows:
+            box = max(rows, key=lambda r: r["box"][3])["box"]
+            CUS_LOGGER.info(f"命途狭间：点击选项「{max(rows, key=lambda r: r['box'][3])['raw_text']}」 全部{texts}")
+            key_mouse_manager.click_point((box[0] + box[2]) // 2, (box[1] + box[3]) // 2, box=box)
+        else:
+            CUS_LOGGER.info("命途狭间：没认到选项，点击推进对话")
+            key_mouse_manager.click_point(960, 900)
+        key_mouse_manager.wait()
+        self.last_interact_time = time.time()
+        return True
 
     def check_minimap_icon(self, icon_name, threshold=0.85):
         """检查小地图上是否存在指定图标标志。"""
