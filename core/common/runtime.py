@@ -185,6 +185,9 @@ class ScriptKernel(StateKernel):
                 return
         if (x0, y0) == (self.x0, self.y0):
             return
+        if x0 <= -30000 or y0 <= -30000:
+            # 最小化窗口的坐标是 (-32000, -32000)，不同步，等窗口还原后再比对
+            return
         CUS_LOGGER.warning(f"游戏窗口位置由 ({self.x0}, {self.y0}) 变为 ({x0}, {y0})，已同步截图与点击坐标")
         self.x0, self.y0 = x0, y0
         self.x1, self.y1 = x0 + self.xx, y0 + self.yy
