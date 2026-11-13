@@ -588,9 +588,7 @@
         },
         "actions":
         [
-            {
-                "position": [1606, 966]
-            }
+            "prepare_team"
         ]
     },
         {

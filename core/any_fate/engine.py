@@ -405,6 +405,55 @@ class AnyFateUniverse(FateUtils):
         else:
             return 0
 
+    # ---------- 开局自动配队 ----------
+    # 新开局「下载初始角色」时队伍可能为空，原动作只会反复点「启动」并收到「请至少下载一位角色」。
+    # 队伍按 resource/imgs/team_<序号>_*.png 的头像模板依次点选（序号即上场顺序，1 号位是地图平 A 角色）。
+    TEAM_ROSTER_BOX = (40, 200, 580, 960)
+    TEAM_SLOT_BOX = (580, 750, 1100, 920)
+
+    def prepare_team(self):
+        screen = self.get_screen()
+        empty = find_image_by_name("team_empty_slot")
+        x1, y1, x2, y2 = self.TEAM_SLOT_BOX
+        if empty is not None:
+            slot_score = cv.minMaxLoc(cv.matchTemplate(screen[y1:y2, x1:x2], empty, cv.TM_CCOEFF_NORMED))[1]
+        else:
+            slot_score = 0
+        if slot_score > 0.85:
+            names = sorted(n for n in self.team_template_names())
+            rx1, ry1, rx2, ry2 = self.TEAM_ROSTER_BOX
+            picked = 0
+            for name in names:
+                tpl = find_image_by_name(name)
+                if tpl is None:
+                    continue
+                result = cv.matchTemplate(screen[ry1:ry2, rx1:rx2], tpl, cv.TM_CCOEFF_NORMED)
+                _, value, _, loc = cv.minMaxLoc(result)
+                if value < 0.85:
+                    CUS_LOGGER.warning(f"开局配队：角色列表里没找到 {name}（匹配度{value:.2f}）")
+                    continue
+                cx = rx1 + loc[0] + tpl.shape[1] // 2
+                cy = ry1 + loc[1] + tpl.shape[0] // 2
+                key_mouse_manager.click_point(cx, cy)
+                key_mouse_manager.wait()
+                time.sleep(0.6)
+                picked += 1
+            if picked == 0:
+                CUS_LOGGER.warning("开局配队：模板都没匹配上，按位置选列表前 4 个角色")
+                for cx, cy in ((154, 504), (288, 504), (422, 504), (154, 664)):
+                    key_mouse_manager.click_point(cx, cy)
+                    key_mouse_manager.wait()
+                    time.sleep(0.6)
+            CUS_LOGGER.info(f"开局配队：已按模板选择 {picked} 名角色")
+        key_mouse_manager.click_point(1606, 966)
+        key_mouse_manager.wait()
+
+    @staticmethod
+    def team_template_names():
+        folder = PATHS["image"]
+        return [os.path.splitext(f)[0] for f in os.listdir(folder)
+                if f.startswith("team_") and f[5:6].isdigit() and f.lower().endswith((".png", ".jpg"))]
+
     # ---------- 4.7「命途狭间」 ----------
     # 流程（玩家实测）：走向发白光的菱形 → 出现对话，一直点那个选项 → 再走向白色菱形框 → 点「离开」。
     # 区域里没有小地图目标，只能靠画面里的白光菱形导航。
