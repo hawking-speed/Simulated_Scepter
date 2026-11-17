@@ -96,11 +96,10 @@ class My_TS:
         return res
 
     def ocr_one_row(self, img, box=None):
-        if box is None:
-            return self.ts.text_recognizer([img])[0][0]
-        else:
-            # log.debug(f"ocr结果{self.ts.text_recognizer([img[box[1]:box[3], box[0]:box[2]]])}")
-            return self.ts.text_recognizer([img[box[1]:box[3], box[0]:box[2]]])[0][0]
+        roi = img if box is None else img[box[1]:box[3], box[0]:box[2]]
+        if roi is None or roi.size == 0 or roi.shape[0] < 1 or roi.shape[1] < 1:
+            return ""
+        return self.ts.text_recognizer([roi])[0][0]
 
     def ocr_one_row_and_save(self, img):
         """

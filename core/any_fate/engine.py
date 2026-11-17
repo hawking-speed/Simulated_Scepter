@@ -11,9 +11,9 @@ from route import PATHS
 from core.common.config import load_runtime_settings
 from core.common.runtime import set_forground, sprint
 from core.any_fate.utils import FateUtils
-from core.any_fate.text_key import FATES
+from core.any_fate.text_key import FATES, text_keys
 from tool.settings import load_settings
-from tool.storage import load_module_settings
+from tool.storage import config_path, load_module_settings
 from tool.storage import resource_path
 from tool.GLOBAL import factor, key_mouse_manager
 from tool.log import CUS_LOGGER, log_emitter
@@ -65,6 +65,16 @@ class AnyFateUniverse(FateUtils):
             debug=self.opt.get("debug", True),
             max_run_time=self.opt.get("max_run_time", 0),
         )
+        # 命途轮换：fate_rotation 为命途列表时，每开新的一局换下一个命途。
+        # 当前命途记在状态文件里，脚本中途重启「继续进度」时仍按这局实际的命途选祝福。
+        self.fate_rotation = [f for f in (self.opt.get("fate_rotation") or []) if f in FATES]
+        if self.fate_rotation:
+            state = self._load_rotation_state()
+            if state.get("fate") in FATES:
+                self.set_fate(state["fate"])
+            CUS_LOGGER.info(f"命途轮换已开启：{'→'.join(self.fate_rotation)}")
+        self._apply_bless_overrides()
+        CUS_LOGGER.info(f"选祝福优先：{self.tk.prior_bless[:4]}…；命途顺序：{self.tk.secondary}")
         CUS_LOGGER.info(f"任意命途寰宇蝗灾已就绪，当前命途：{self.fate}")
         self.plane_floor = -1
         self.need_record = False
@@ -296,7 +306,11 @@ class AnyFateUniverse(FateUtils):
                     # 4.7：首领房「觐见装置」交互后会传送到「命途狭间」，区域名变了但 self.area 不会自动刷新
                     ocr_text = self.ts.find_with_box(box=[55, 12, 164, 40], forward=True, re_screen=False)
                     label = merge_text(ocr_text) if len(ocr_text) else ""
-                    if label and label != self.area and ("狭间" in label or "狭间" in self.area):
+                    # OCR 偶尔只读出半截（实测「命途狭间」读成「间」），离开狭间必须读到完整的其他区域名
+                    entering = "狭间" in label and "狭间" not in self.area
+                    leaving = ("狭间" in self.area and "狭间" not in label
+                               and len(label) >= 2 and label not in "命途狭间")
+                    if entering or leaving:
                         CUS_LOGGER.info(f"区域由「{self.area}」变为「{label}」")
                         self.area = label
                         self.rift_steps = 0
@@ -409,10 +423,47 @@ class AnyFateUniverse(FateUtils):
     # 新开局「下载初始角色」时队伍可能为空，原动作只会反复点「启动」并收到「请至少下载一位角色」。
     # 队伍按 user/team/<序号>_*.png 的头像模板依次点选（序号即上场顺序，1 号位是地图平 A 角色）；
     # 模板需在自己电脑的「下载初始角色」界面截取（约 100x90 的头像），没有模板时按位置选列表前 4 个角色。
-    TEAM_ROSTER_BOX = (40, 200, 580, 960)
+    TEAM_ROSTER_BOX = (40, 110, 580, 960)
     TEAM_SLOT_BOX = (580, 750, 1100, 920)
 
+    # 「下载角色」一栏 4 个已选角色的头像中心；点一下即把该角色移出队伍
+    TEAM_SELECTED_SLOTS = ((668, 835), (775, 835), (880, 835), (986, 835))
+
+    def enforce_team(self):
+        """有头像模板时强制按模板配队，返回是否已配好。
+
+        游戏每局会自动填回上一次的固定队伍（不是上局手动换的人），只在空队时配队
+        换不了人；所以先把 4 个位置清空，再按模板依次点选。
+        """
+        templates = self.team_templates()
+        if not templates:
+            return False
+        for cx, cy in self.TEAM_SELECTED_SLOTS:
+            key_mouse_manager.click_point(cx, cy)
+            key_mouse_manager.wait()
+            time.sleep(0.4)
+        time.sleep(0.6)
+        screen = self.get_screen()
+        rx1, ry1, rx2, ry2 = self.TEAM_ROSTER_BOX
+        picked = []
+        for name, tpl in templates:
+            result = cv.matchTemplate(screen[ry1:ry2, rx1:rx2], tpl, cv.TM_CCOEFF_NORMED)
+            _, value, _, loc = cv.minMaxLoc(result)
+            if value < 0.85:
+                CUS_LOGGER.warning(f"开局配队：角色列表里没找到 {name}（匹配度{value:.2f}）")
+                continue
+            key_mouse_manager.click_point(rx1 + loc[0] + tpl.shape[1] // 2, ry1 + loc[1] + tpl.shape[0] // 2)
+            key_mouse_manager.wait()
+            time.sleep(0.6)
+            picked.append(name)
+        CUS_LOGGER.info(f"开局配队：按模板选了 {len(picked)} 名角色 {picked}")
+        return len(picked) > 0
+
     def prepare_team(self):
+        if self.enforce_team():
+            key_mouse_manager.click_point(1606, 966)
+            key_mouse_manager.wait()
+            return
         screen = self.get_screen()
         empty = find_image_by_name("team_empty_slot")
         x1, y1, x2, y2 = self.TEAM_SLOT_BOX
@@ -461,55 +512,62 @@ class AnyFateUniverse(FateUtils):
         return result
 
     # ---------- 4.7「命途狭间」 ----------
-    # 流程（玩家实测）：走向发白光的菱形 → 出现对话，一直点那个选项 → 再走向白色菱形框 → 点「离开」。
-    # 区域里没有小地图目标，只能靠画面里的白光菱形导航。
-    RIFT_EXCLUDE = (
-        (0, 0, 460, 460),        # 左上区域名/小地图
-        (1380, 0, 1920, 160),    # 右上图标/进行中
-        (1520, 180, 1920, 760),  # 右侧队伍
-        (1400, 760, 1920, 1080), # 右下技能
-        (0, 960, 520, 1080),     # 左下 UID
-        (860, 420, 1060, 1000),  # 角色本体
-    )
+    # 流程（实测 2026-11-13，难度 III）：出生点远处有一个漩涡，中心是一根橙色光柱。
+    # 第一次进入时光柱旁有事件（黑塔下注，「事件」触发器会选完，获得星神馈赠）；
+    # 事件结束后光柱旁出现白光晶体，走近交互「离开」即进入下一位面。
+    # 白光菱形远看太小（模板匹配分仅 0.65）、地面金色引导线方向会变，都不可靠；
+    # 光柱在天空里，有光柱的画面掩膜得分 >1500，没有时为 0，作为唯一导航目标。
+    RIFT_VORTEX_HSV = ((5, 120, 180), (25, 255, 255))
+    RIFT_VORTEX_MIN_SCORE = 30   # 没有光柱的画面得分恒为 0；走近后光柱大半出画，只剩几十分
+    RIFT_TARGET_OFFSET = 80      # 远处只看到光柱时，事件点与出口晶体在光柱右侧一点
+    RIFT_CRYSTAL_HSV = ((0, 0, 215), (180, 60, 255))
+    RIFT_CRYSTAL_MIN_AREA = 300
+    RIFT_MAX_STEPS = 90
 
-    RIFT_BEACON_THRESHOLD = 0.75
+    def _rift_sky_mask(self, screen, hsv_range):
+        """天空区域（地面以上、去掉 UI）里落在指定 HSV 范围的掩膜。"""
+        hsv = cv.cvtColor(screen, cv.COLOR_BGR2HSV)
+        mask = cv.inRange(hsv, *hsv_range)
+        mask[480:] = 0          # 地面的金色引导线、碎石反光不算
+        mask[:, :300] = 0       # 左上区域名与小地图
+        mask[:, 1500:] = 0      # 右侧队伍
+        mask[:170, 1380:] = 0   # 右上图标与「当前进行中」
+        return mask
 
-    def find_rift_beacon(self, screen):
-        """
-        在画面里找发白光的四角星菱形（模板 resource/imgs/rift_beacon.png，多尺度匹配）。
-        返回 (cx, cy, 尺度) 或 None。实测真目标得分 1.0，其余画面 ≤0.68。
-        """
-        tpl = find_image_by_name("rift_beacon")
-        if tpl is None:
-            CUS_LOGGER.error("缺少命途狭间菱形模板 rift_beacon.png")
+    def find_rift_vortex(self, screen):
+        """返回漩涡橙色光柱的横坐标；画面里没有光柱返回 None。"""
+        mask = self._rift_sky_mask(screen, self.RIFT_VORTEX_HSV)
+        score = np.convolve(mask.sum(axis=0) // 255, np.ones(15), "same")
+        x = int(score.argmax())
+        if score[x] < self.RIFT_VORTEX_MIN_SCORE:
             return None
-        img = screen.copy()
-        for x1, y1, x2, y2 in self.RIFT_EXCLUDE[:-1]:  # 角色本体不遮，菱形可能就在正前方
-            if x1 >= 1520 and y1 >= 180:
-                continue  # 队伍栏区域里也可能出现菱形，模板匹配不会误认头像
-            img[y1:y2, x1:x2] = 0
-        best = (0.0, None)
-        for scale in (0.5, 0.7, 0.85, 1.0, 1.25, 1.6, 2.0, 2.6, 3.4):
-            t = cv.resize(tpl, None, fx=scale, fy=scale)
-            result = cv.matchTemplate(img, t, cv.TM_CCOEFF_NORMED)
-            _, value, _, loc = cv.minMaxLoc(result)
-            if value > best[0]:
-                best = (value, (loc[0] + t.shape[1] / 2, loc[1] + t.shape[0] / 2, scale))
-        CUS_LOGGER.debug(f"命途狭间菱形匹配度{best[0]:.3f} {best[1]}")
-        return best[1] if best[0] >= self.RIFT_BEACON_THRESHOLD else None
+        CUS_LOGGER.debug(f"命途狭间：漩涡光柱位于 x={x}，得分{int(score[x])}")
+        return x
+
+    def find_rift_crystal(self, screen):
+        """返回白光晶体（事件点/出口）的横坐标；没有返回 None。角色本体的白色部分已遮掉。"""
+        mask = self._rift_sky_mask(screen, self.RIFT_CRYSTAL_HSV)
+        mask[150:, 840:1080] = 0   # 角色本体（含头顶白色发饰，曾被误认成晶体卡死 30 分钟）
+        count, _, stats, centers = cv.connectedComponentsWithStats(mask)
+        blobs = [i for i in range(1, count) if stats[i, cv.CC_STAT_AREA] >= self.RIFT_CRYSTAL_MIN_AREA]
+        if not blobs:
+            return None
+        best = max(blobs, key=lambda i: stats[i, cv.CC_STAT_AREA])
+        CUS_LOGGER.debug(f"命途狭间：白光晶体位于({centers[best][0]:.0f},{centers[best][1]:.0f})，面积{stats[best, cv.CC_STAT_AREA]}")
+        return float(centers[best][0])
 
     def save_rift_screen(self, tag):
-        """命途狭间的界面还没完全摸清，关键帧存档便于复核与补触发器。"""
+        """命途狭间的关键帧存档，便于复核与补触发器。"""
         try:
             folder = os.path.join(PATHS["temp"], "rift")
             os.makedirs(folder, exist_ok=True)
             cv.imencode(".jpg", self.screen)[1].tofile(
                 os.path.join(folder, f"{time.strftime('%m%d_%H%M%S')}_{tag}.jpg"))
         except Exception as error:
-            CUS_LOGGER.debug(f"保存命途狭间截图失败：{error}")
+            CUS_LOGGER.warning(f"命途狭间截图保存失败：{error}")
 
     def navigate_rift(self):
-        """大世界状态下的命途狭间寻路：有交互提示就交互，否则对准白光菱形往前走。"""
+        """大世界状态下的命途狭间寻路：有交互提示就交互，否则朝漩涡光柱走。"""
         self.rift_steps = getattr(self, "rift_steps", 0) + 1
         if self.check("interact", mask=MASK["interact_icon"], threshold=0.96, fresh=True):
             CUS_LOGGER.info("命途狭间：出现交互提示，交互")
@@ -521,18 +579,30 @@ class AnyFateUniverse(FateUtils):
             self.last_interact_time = time.time()
             return
         screen = self.get_screen()
-        beacon = self.find_rift_beacon(screen)
-        if self.rift_steps == 1:
-            self.save_rift_screen("enter")
-        if beacon is None:
-            CUS_LOGGER.debug("命途狭间：画面里没找到白光菱形，转身寻找")
+        if self.rift_steps == 1 or self.rift_steps % 15 == 0:
+            self.save_rift_screen("enter" if self.rift_steps == 1 else f"step{self.rift_steps}")
+        target_x = self.find_rift_crystal(screen)
+        if target_x is None:
+            vortex_x = self.find_rift_vortex(screen)
+            if vortex_x is not None:
+                target_x = vortex_x + self.RIFT_TARGET_OFFSET
+        if target_x is None:
+            # 狭间事件后角色会被挪到别处，光柱可能在画面边缘被遮罩掉，要转满一圈才找得到；
+            # 转身的前 12 次（约一圈多）也算有效进展，之后仍找不到再交给超时暂离兜底
+            self.rift_search_turns = getattr(self, "rift_search_turns", 0) + 1
+            if self.rift_search_turns <= 12:
+                self.last_interact_time = time.time()
+            CUS_LOGGER.debug(f"命途狭间：画面里没有白光晶体和漩涡光柱，第{self.rift_search_turns}次转身寻找")
             key_mouse_manager.keyUp("move_w")
             key_mouse_manager.turn(40)
             key_mouse_manager.wait()
             return
-        cx, cy, scale = beacon
-        offset = cx - 960
-        CUS_LOGGER.debug(f"命途狭间：白光菱形位于({cx:.0f},{cy:.0f}) 尺度{scale}，水平偏移{offset:.0f}")
+        self.rift_search_turns = 0
+        # 有目标可走就算有效进展，避免 40 秒无交互触发暂离（暂离会被送回首领房）；
+        # 但在狭间里走了 90 步（约 3 分钟）还没交互，说明被卡住，不再续时，交给超时暂离兜底
+        if self.rift_steps <= self.RIFT_MAX_STEPS:
+            self.last_interact_time = time.time()
+        offset = target_x - 960
         if abs(offset) > 60:
             key_mouse_manager.keyUp("move_w")
             key_mouse_manager.turn(offset * 0.05)
@@ -882,17 +952,105 @@ class AnyFateUniverse(FateUtils):
         CUS_LOGGER.info("他相信，终有一日，曙光会穿透翁法罗斯的长夜。")
         self.write_map(self.pos_predictor.assets_floor_feat, self.pos_predictor.map_num)
 
+    BATTLE_RETRY_LIMIT = 2
+
+    def battle_failed(self):
+        """
+        战斗失败页：先「重新挑战」，连续失败超过 BATTLE_RETRY_LIMIT 次就「终止战斗并结算」。
+        重新挑战会回到本场战斗开始时的状态，队伍残血进场时必输（实测难度 III 第三位面
+        5 秒一败，无限重试 25 分钟）；位面的行者之道进度在过位面时已结算，提前结算不亏。
+        触发器在失败页停留期间会反复命中，5 秒内的重复命中不计次。
+        """
+        now = time.time()
+        last = getattr(self, "_battle_fail_time", 0)
+        if now - last < 5:
+            return
+        if now - last > 180:
+            self._battle_fail_count = 0
+        self._battle_fail_time = now
+        self._battle_fail_count = getattr(self, "_battle_fail_count", 0) + 1
+        if self._battle_fail_count <= self.BATTLE_RETRY_LIMIT:
+            CUS_LOGGER.warning(f"战斗失败，第{self._battle_fail_count}次重新挑战")
+            key_mouse_manager.click_point(1205, 990)
+            return
+        CUS_LOGGER.warning(f"连续{self._battle_fail_count}次战斗失败，终止战斗并结算本局")
+        self._battle_fail_count = 0
+        key_mouse_manager.click_point(714, 988)
+
     def begin_universe(self):
         self.area = ""
         con = self.click_text(text="继续进度",box=[1610, 937, 1762, 1023],click=False,ocr_line=False,warning=False)
         if not con:
-            #点击最低难度
-            key_mouse_manager.click_point(120, 155)
+            # 选难度：模块设置 difficulty（1~5，默认 1 即最低难度，铁血战士用）。
+            # 行者之道多数要求第二/第三难度及以上，章节解锁靠行者之道给的觐见行迹点数，
+            # 所以刷寰宇蝗灾奖励时应把 any_fate.json 的 difficulty 设为 3 左右。
+            try:
+                # 每局开局重读模块设置，改 any_fate.json 的 difficulty 不用重启脚本
+                difficulty = min(5, max(1, int(load_module_settings(__file__).get("difficulty", self.opt.get("difficulty", 1)))))
+            except (TypeError, ValueError):
+                difficulty = 1
+            key_mouse_manager.click_point(127, 179 + 108 * (difficulty - 1))
+            CUS_LOGGER.info(f"选择难度 {difficulty}")
+            self.rotate_fate()
         key_mouse_manager.click_point(1712, 971)
         if con:
             CUS_LOGGER.info("继续，燃烧下去。只要我们不曾熄灭……逐火就不会终结…")
 
+    def set_fate(self, fate):
+        """切换当前命途，并按新命途重建祝福/事件的 OCR 关键词表。"""
+        self.fate = fate
+        self.my_fate = FATES.index(fate)
+        self.tk = text_keys(self.my_fate)
+        self._apply_bless_overrides()
+
+    def _apply_bless_overrides(self):
+        """按模块设置调整选祝福的优先级（随命途切换重新套用）。
+
+        - bless_priority_front：排在所有祝福名之前的关键词，用来优先拿
+          命途回响 / 回响交错 / 回响构音（行者之道任务需要）。
+        - secondary_fates：卡片上没有本命途祝福时，按这个顺序挑别的命途；
+          本局命途始终排第一。
+        """
+        front = [s for s in (self.opt.get("bless_priority_front") or []) if isinstance(s, str) and s]
+        if front:
+            self.tk.prior_bless = front + [s for s in self.tk.prior_bless if s not in front]
+        secondary = [f for f in (self.opt.get("secondary_fates") or []) if f in FATES and f != self.fate]
+        if secondary:
+            self.tk.secondary = [self.fate] + secondary
+
+    def _rotation_state_path(self):
+        return config_path(__file__).with_name("any_fate_rotation.json")
+
+    def _load_rotation_state(self):
+        try:
+            return json.loads(self._rotation_state_path().read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+
+    def rotate_fate(self):
+        """新的一局开始前换到轮换列表里的下一个命途（没配 fate_rotation 时不动）。"""
+        if not self.fate_rotation:
+            return
+        state = self._load_rotation_state()
+        index = (int(state.get("index", -1)) + 1) % len(self.fate_rotation)
+        self.set_fate(self.fate_rotation[index])
+        try:
+            self._rotation_state_path().write_text(
+                json.dumps({"index": index, "fate": self.fate}, ensure_ascii=False), encoding="utf-8")
+        except OSError as e:
+            CUS_LOGGER.warning(f"命途轮换状态保存失败：{e}")
+        CUS_LOGGER.info(f"命途轮换：本局命途 {self.fate}（第{index + 1}/{len(self.fate_rotation)}个）")
+
+    # 命途选择页 8 个命途从左到右等距排列（繁育在最后，未解锁时为锁）。
+    FATE_SLOT_ORDER = ['存护', '记忆', '虚无', '丰饶', '巡猎', '毁灭', '欢愉', '繁育']
+
     def select_fate(self):
+        # 旧实现对整行做单行 OCR，命中后点击整行中心 (960, 799)，正好落在丰饶与巡猎之间的空隙，
+        # 除铁血/弹指（各自写死坐标）外的命途都会在这一页死循环。按命途的位置直接点。
+        if self.fate in self.FATE_SLOT_ORDER:
+            index = self.FATE_SLOT_ORDER.index(self.fate)
+            key_mouse_manager.click_point(int(187 + 220.6 * index), 798)
+            return
         self.click_text(text=self.fate, box=[159, 782, 1761, 816], allow_fail=True)
 
     def select_head(self):

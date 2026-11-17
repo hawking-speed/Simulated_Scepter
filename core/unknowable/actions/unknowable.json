@@ -1,0 +1,850 @@
+[
+  {
+    "name": "重新进入游戏",
+    "trigger": {
+      "text": "公告",
+      "box": [
+        1808,
+        100,
+        1851,
+        125
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "position": [
+          900,
+          1000
+        ]
+      },
+      {
+        "sleep": 10
+      }
+    ]
+  },
+  {
+    "name": "造物调试台",
+    "trigger": {
+      "text": "造物调试台",
+      "box": [
+        60,
+        45,
+        320,
+        110
+      ],
+      "redundancy": 20
+    },
+    "actions": [
+      "bench"
+    ]
+  },
+  {
+    "name": "教程关闭",
+    "trigger": {
+      "text": "关闭",
+      "box": [
+        860,
+        868,
+        1060,
+        910
+      ],
+      "redundancy": 10
+    },
+    "actions": [
+      {
+        "position": [
+          960,
+          888
+        ]
+      },
+      {
+        "sleep": 1.5
+      }
+    ]
+  },
+  {
+    "name": "教程翻页",
+    "trigger": {
+      "text": "不可知域",
+      "box": [
+        700,
+        205,
+        1220,
+        250
+      ],
+      "redundancy": 10
+    },
+    "actions": [
+      {
+        "position": [
+          1840,
+          508
+        ]
+      },
+      {
+        "sleep": 1
+      }
+    ]
+  },
+  {
+    "name": "探索完成",
+    "trigger": {
+      "text": "返回主界面",
+      "box": [
+        840,
+        935,
+        1080,
+        990
+      ],
+      "redundancy": 20
+    },
+    "actions": [
+      "run_finished",
+      {
+        "position": [
+          960,
+          962
+        ]
+      },
+      {
+        "sleep": 5
+      }
+    ]
+  },
+  {
+    "name": "权限解锁",
+    "trigger": {
+      "text": "权限解锁",
+      "box": [
+        860,
+        130,
+        1060,
+        175
+      ],
+      "redundancy": 10
+    },
+    "actions": [
+      {
+        "position": [
+          960,
+          995
+        ]
+      },
+      {
+        "sleep": 2
+      }
+    ]
+  },
+  {
+    "name": "替换权杖",
+    "trigger": {
+      "text": "替换权杖",
+      "box": [
+        820,
+        60,
+        1100,
+        105
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      "replace_scepter"
+    ]
+  },
+  {
+    "name": "选择权杖",
+    "trigger": {
+      "text": "选择权杖",
+      "box": [
+        100,
+        60,
+        300,
+        100
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      "pick_scepter"
+    ]
+  },
+  {
+    "name": "权杖详情",
+    "trigger": {
+      "text": "权杖详情",
+      "box": [
+        850,
+        155,
+        1070,
+        200
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "position": [
+          960,
+          1018
+        ]
+      },
+      {
+        "sleep": 1
+      }
+    ]
+  },
+  {
+    "name": "组件详情",
+    "trigger": {
+      "text": "组件详情",
+      "box": [
+        850,
+        155,
+        1070,
+        200
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "position": [
+          960,
+          1018
+        ]
+      },
+      {
+        "sleep": 1
+      }
+    ]
+  },
+  {
+    "name": "选择组件",
+    "trigger": {
+      "text": "选择组件",
+      "box": [
+        100,
+        60,
+        300,
+        100
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      "pick_generic"
+    ]
+  },
+  {
+    "name": "选择奇物",
+    "trigger": {
+      "text": "选择奇物",
+      "box": [
+        100,
+        60,
+        300,
+        100
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      "pick_generic"
+    ]
+  },
+  {
+    "name": "存档冲突",
+    "trigger": {
+      "text": "无法进入新关卡",
+      "box": [
+        480,
+        500,
+        1440,
+        560
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "position": [
+          750,
+          720
+        ]
+      },
+      {
+        "sleep": 2
+      }
+    ]
+  },
+  {
+    "name": "结算确认",
+    "trigger": {
+      "text": "将进行结算并重置进度",
+      "box": [
+        600,
+        480,
+        1320,
+        530
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "position": [
+          1168,
+          672
+        ]
+      },
+      {
+        "sleep": 4
+      }
+    ]
+  },
+  {
+    "name": "关卡启动",
+    "trigger": {
+      "text": "启动「模拟宇宙」",
+      "box": [
+        1500,
+        945,
+        1860,
+        995
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      "start_stage"
+    ]
+  },
+  {
+    "name": "关卡启动",
+    "trigger": {
+      "text": "启动",
+      "box": [
+        1500,
+        945,
+        1860,
+        995
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      "start_stage"
+    ]
+  },
+  {
+    "name": "继续进度",
+    "trigger": {
+      "text": "继续进度",
+      "box": [
+        1500,
+        930,
+        1880,
+        1000
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "text": "继续进度"
+      },
+      {
+        "sleep": 5
+      }
+    ]
+  },
+  {
+    "name": "不可知域主界面",
+    "trigger": {
+      "text": "不可知域",
+      "box": [
+        95,
+        55,
+        265,
+        100
+      ],
+      "redundancy": 5
+    },
+    "actions": [
+      "pick_stage"
+    ]
+  },
+  {
+    "name": "扩展装置",
+    "trigger": {
+      "text": "扩展装置",
+      "box": [
+        95,
+        45,
+        265,
+        90
+      ],
+      "redundancy": 5
+    },
+    "actions": [
+      "expansion_card"
+    ]
+  },
+  {
+    "name": "模拟宇宙主界面",
+    "trigger": {
+      "text": "扩展装置",
+      "box": [
+        120,
+        790,
+        360,
+        830
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "position": [
+          240,
+          810
+        ]
+      },
+      {
+        "sleep": 2.5
+      }
+    ]
+  },
+  {
+    "name": "指南前往模拟宇宙",
+    "trigger": {
+      "text": "前往模拟宇宙",
+      "box": [
+        725,
+        356,
+        870,
+        388
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "position": [
+          797,
+          372
+        ]
+      },
+      {
+        "sleep": 2.5
+      }
+    ]
+  },
+  {
+    "name": "指南选差分宇宙",
+    "trigger": {
+      "text": "旷宇纷争",
+      "box": [
+        101,
+        66,
+        203,
+        94
+      ],
+      "redundancy": 30,
+      "interval": 1
+    },
+    "actions": [
+      {
+        "position": [
+          364,
+          476
+        ]
+      },
+      {
+        "sleep": 1.5
+      }
+    ]
+  },
+  {
+    "name": "指南切到旷宇纷争",
+    "trigger": {
+      "text": "星际和平指南",
+      "box": [
+        101,
+        39,
+        221,
+        66
+      ],
+      "redundancy": 30,
+      "interval": 1
+    },
+    "actions": [
+      {
+        "position": [
+          602,
+          212
+        ]
+      },
+      {
+        "sleep": 1.5
+      }
+    ]
+  },
+  {
+    "name": "点击空白处继续",
+    "trigger": {
+      "text": "点击空白处继续",
+      "box": [
+        780,
+        890,
+        1140,
+        935
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "position": [
+          960,
+          960
+        ]
+      },
+      {
+        "sleep": 3
+      }
+    ]
+  },
+  {
+    "name": "丢弃",
+    "trigger": {
+      "text": "丢弃",
+      "box": [
+        94,
+        58,
+        193,
+        85
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      "drop_bless"
+    ]
+  },
+  {
+    "name": "加权奇物选择",
+    "trigger": {
+      "text": "奇物",
+      "box": [
+        94,
+        58,
+        240,
+        84
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "sleep": "0.6"
+      },
+      "bless"
+    ]
+  },
+  {
+    "name": "事件选择",
+    "trigger": {
+      "text": "事件",
+      "box": [
+        92,
+        54,
+        195,
+        88
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      "event"
+    ]
+  },
+  {
+    "name": "战斗结束-失败",
+    "trigger": {
+      "text": "终止战斗并结算",
+      "box": [
+        621,
+        965,
+        791,
+        994
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "text": "终止战斗并结算"
+      }
+    ]
+  },
+  {
+    "name": "确认界面",
+    "trigger": {
+      "text": "确认",
+      "box": [
+        1111,
+        750,
+        1225,
+        792
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "text": "确认",
+        "box": [
+          1111,
+          750,
+          1225,
+          792
+        ],
+        "redundancy": 30
+      },
+      {
+        "sleep": 1
+      }
+    ]
+  },
+  {
+    "name": "确认界面",
+    "trigger": {
+      "text": "确认",
+      "box": [
+        1111,
+        648,
+        1225,
+        678
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "text": "确认",
+        "box": [
+          1111,
+          648,
+          1225,
+          678
+        ],
+        "redundancy": 30
+      },
+      {
+        "sleep": 1
+      }
+    ]
+  },
+  {
+    "name": "确认界面",
+    "trigger": {
+      "text": "确认",
+      "box": [
+        1152,
+        756,
+        1206,
+        786
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "text": "确认",
+        "box": [
+          1152,
+          756,
+          1206,
+          786
+        ],
+        "redundancy": 30
+      },
+      {
+        "sleep": 1
+      }
+    ]
+  },
+  {
+    "name": "退出界面",
+    "trigger": {
+      "text": "暂离",
+      "box": [
+        1312,
+        873,
+        1372,
+        905
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      {
+        "text": "暂离"
+      },
+      {
+        "sleep": 3
+      }
+    ]
+  },
+  {
+    "name": "继续战斗",
+    "trigger": {
+      "text": "继续战斗",
+      "box": [
+        1569,
+        959,
+        1672,
+        991
+      ],
+      "redundancy": 30
+    },
+    "actions": [
+      "sleep",
+      {
+        "text": "继续战斗"
+      }
+    ]
+  },
+  {
+    "name": "混沌药箱",
+    "trigger": {
+      "text": "药箱",
+      "box": [
+        92,
+        55,
+        195,
+        87
+      ],
+      "redundancy": 60
+    },
+    "actions": [
+      {
+        "position": [
+          1680,
+          527
+        ]
+      },
+      {
+        "sleep": 0.5
+      },
+      {
+        "position": [
+          1680,
+          527
+        ]
+      }
+    ]
+  },
+  {
+    "name": "点击空白处关闭",
+    "trigger": {
+      "text": "空白",
+      "box": [
+        867,
+        981,
+        1037,
+        1008
+      ],
+      "redundancy": 60
+    },
+    "actions": [
+      {
+        "text": "点击空白"
+      },
+      {
+        "sleep": 1
+      }
+    ]
+  },
+  {
+    "name": "点击空白处关闭",
+    "trigger": {
+      "text": "空白",
+      "box": [
+        868,
+        803,
+        1035,
+        829
+      ],
+      "redundancy": 60
+    },
+    "actions": [
+      {
+        "text": "点击空白"
+      },
+      {
+        "sleep": 1
+      }
+    ]
+  },
+  {
+    "name": "月卡界面",
+    "trigger": {
+      "text": "今日补给",
+      "box": [
+        852,
+        883,
+        1052,
+        922
+      ],
+      "redundancy": 60
+    },
+    "actions": [
+      {
+        "text": "今日补给"
+      },
+      {
+        "sleep": 2
+      }
+    ]
+  },
+  {
+    "name": "快速恢复",
+    "trigger": {
+      "text": "快速恢复",
+      "box": [
+        896,
+        245,
+        1028,
+        290
+      ],
+      "redundancy": 60
+    },
+    "actions": [
+      {
+        "position": [
+          1443,
+          744
+        ]
+      },
+      {
+        "position": [
+          1176,
+          815
+        ]
+      },
+      {
+        "sleep": 0.5
+      },
+      {
+        "position": [
+          1176,
+          670
+        ]
+      }
+    ]
+  },
+  {
+    "name": "大世界",
+    "trigger": {
+      "text": "黑塔的办公室",
+      "box": [
+        40,
+        8,
+        300,
+        48
+      ],
+      "redundancy": 10,
+      "interval": 8
+    },
+    "actions": [
+      {
+        "press": "interastral_peace_guide"
+      },
+      {
+        "sleep": 3
+      }
+    ]
+  }
+]
