@@ -1,10 +1,22 @@
 [简体中文](README.md) | [繁体中文](README_CHT.md) | [English](README_ENG.md)
 
 # 模拟权杖 | Simulated_Scepter
-模拟权杖 ω - u13.exe
-本软件使用 [AGPL 3.0 协议](https://github.com/syfoud/Simulated_Scepter/LICENSE)开源.
 
-《崩坏:星穹铁道》的寰宇蝗灾极难成就自动助手，一键自动化助力完成。
+<div align="center">
+
+![模拟权杖二次元主视觉](doc/anime_banner.jpg)
+
+**《崩坏：星穹铁道》4.7 全场景自动化助手 · 模拟宇宙 / 黄金与机械 / 不可知域 / 货币战争 S2「入画奇航」**
+
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](https://github.com/syfoud/Simulated_Scepter/LICENSE)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12%2B-ffd43b?logo=python&logoColor=white)](pyproject.toml)
+[![Branch: adapt/game-4.7-ui](https://img.shields.io/badge/4.7%20适配-adapt%2Fgame--4.7--ui-ff7eb6)](docs/4.7适配说明.md)
+
+</div>
+
+> ⚠️ **免责声明**：本软件基于 [AGPL 3.0 协议](https://github.com/syfoud/Simulated_Scepter/LICENSE)开源，仅供学习与技术研究。**米哈游禁止使用脚本，使用本软件可能导致账号被处罚甚至封禁，后果自负。**
+
+模拟权杖 ω - 4.7 多宇宙与货币战争自走棋增强版（详细适配日志见 [4.7 适配分支说明](docs/4.7适配说明.md)）。
 ![模拟宇宙](doc/insect.png)
 ![模拟宇宙](doc/warrior.png)
  软件基于图像识别，不支持任何非绿色作弊功能（如抓包，逆向）。
@@ -61,9 +73,52 @@
 ## 铁血战士
 ![image](doc/iron_blood.png)
 
-## 货币战争
+## 货币战争 S2「入画奇航」自走棋专精
 
-独立的货币战争模块，用于自动收集投资策略
+<div align="center">
+
+![货币战争 S2 入画奇航二次元插画](doc/anime_currency_wars.jpg)
+
+</div>
+
+在原有货币战争自动收集投资策略基础上，针对 **S2「入画奇航」** 新增全流程自动化与 **「连击阿格莱雅 / 那刻夏」** 体系运营优化：
+
+- **动态对局记忆数据库 (`MatchDatabase`, `core/currency/match_db.py`)**：随对局实时追踪前排/后排/备战席站位、角色星级与费用、已穿戴装备数量（0～3）与具体装备清单、人口、金币、连胜/连败状态，持久化至 `user/core_settings/currency_match_db.json`。
+- **全量装备合成与拆装库 (`core/currency/equipment_db.py`)**：内置 S2 8 件散件与完整 36 条两两合成配方（如 `轮滑鞋×2 → 反重力皮靴`、`轮滑鞋+光能电池 → 星航履`、`光能电池×2 → 永动机`、`光能电池+生命之花 → 绝对热量`），结合角色定位评分与防误穿护栏（拒绝给主 C 硬塞纯防御装、拒绝向满装角色硬拖装备），并支持 `精密拆装扳手` / `重铸熔炉` 转装与 `ItemIconCatalog` 自学习右侧栏图标。
+- **专精经济与站位决策 (`core/currency/combo_strategy.py`)**：围绕前排输出与后排辅助（`COMBO_FRONT_ORDER` / `COMBO_BACK_ORDER`）执行 10/20/30/40/50 金币利息控制、连胜/连败搜牌节奏、升人口、备战席溢出清理，并支持攻略「装备追踪」二级弹窗自动勾选追踪与最高已解锁职级开局（`rank: "highest"`）。
+
+## 4.7 多宇宙扩展 & 无人值守自检护栏
+
+<div align="center">
+
+![多宇宙扩展与分级自检守卫二次元插画](doc/anime_modules.jpg)
+
+</div>
+
+- **黄金与机械 (`GoldGearsUniverse`, `core/gold_gears/`)**：复用棋盘走格骨架并由 `build_nous.py` 自动从 `insect.json` 派生 `nous.json`；支持骰面装配切换、难题等级调节，并在检测到其他宇宙暂离存档时写入标记文件停机保护，避免误点结算。
+- **不可知域 (`UnknowableDomain`, `core/unknowable/`)**：接入差分宇宙位面引擎并适配扩展装置入口、权杖/组件选择、交易/精英/谬误第四位面区域导航及卡死「暂离」保护。
+- **寰宇蝗灾 4.7 适配 (`AnyFateUniverse`, `core/any_fate/`)**：支持按 `user/team/<序号>_*.png` 强制开局配队、第三位面「命途狭间」漩涡光柱导航、寻路逐级绕障、铁血战士重投/作弊识别与窗口重定位恢复。
+- **4 级冻屏自检与前景安全护栏 (`core/currency/automation.py`)**：通过 `96×54` 灰度摘要检测画面像素静止（35s / 65s / 95s / 145s）与非战斗阶段停滞（45s / 75s / 105s / 145s），按 1 级清理教学/统计弹窗 → 2 级重置阶段与收起商店 → 3 级重新聚焦 + `Esc` 脱困 → 4 级存图报错停机；支持 `ZZZ_RUNNING.lock` 让位锁与前景窗口守护（非《崩坏：星穹铁道》前台时暂停点击）。
+
+## 黄金与机械 · 全秘闻 / 难题通关实战
+
+<div align="center">
+
+![黄金与机械 二次元插画](doc/anime_gold_gears_banner.jpg)
+
+</div>
+
+- **实战成果**：用 `GoldGearsUniverse` 实机跑通 28/28 秘闻、12 种自定义骰测试、难度 V 初级难题 1~6（难题 2→4→6 逐级解锁）。
+- **推荐配置**：命途「巡猎」，禁用「记忆」「虚无」（保留巡猎回响交错所需的「繁育」「存护」）；高难度（难度 ≥5 或难题 >0）选格避开 `交易 / 双倍 / 冒险`，优先战斗/精英/奖励/事件多拿祝福；第三位面首领优先选「虫群·真蛰虫」（量子弱点）。
+- **自我认知**：自动读取棋盘顶部认知条与推荐区间，认知未达标时允许多绕一步踩「自我认知」格，并按事件选项调节（前两位面 ±20，第三位面 ±40）。
+- **安全护栏**：星神秘闻解锁弹窗自动关闭；「命途狭间」剧情仅识别右侧选项；主界面达到 `28/28` 后自动跳过可选收尾局；检测到不可知域存档绝不点「快捷结束并结算」。
+- 跑图计划见 `core/gold_gears/config/default.json` 的 `runs`（支持 `key` 区分同骰多局、`optional_for_secrets` 标记可选收尾局）。
+
+<div align="center">
+
+![Q 版猫耳小助手](doc/anime_gold_gears_helper.jpg)
+
+</div>
 
 ## 弹指一挥(绝赞测试中)
 ![image](doc/finger_snap.png)
