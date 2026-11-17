@@ -34,6 +34,11 @@ MATCH_MARGIN = 4
 MATCH_SCALE = 0.4
 # 同一角色的比对分数；不同角色实测不超过 0.65，同一角色位移或缩放后仍在 0.95 以上。
 MATCH_THRESHOLD = 0.9
+# S2 入画奇航紫底空位相对 S1 空位模板分数约 0.61~0.79，且灰度方差显著低于角色卡（~23 vs >60）。
+AREA_EMPTY_FALLBACK_SCORE = 0.45
+AREA_EMPTY_MAX_STD = 30.0
+# 暗色空过渡格误采集保护阈值：低于该方差特征不作为角色或道具入库。
+PORTRAIT_MIN_STD = 16.0
 # 卡片右上角的角标：有两枚亮色笔画的黑色圆角框；漏识别角标不能作为道具证据。
 # templates/badges/ 下按角标图形保存模板（front=前台、back=后台、both=前后台都能放），
 # 目录里新增模板即可参与匹配；还没收录的新图形再用下面的形状规则兜底。
@@ -203,6 +208,9 @@ class BattlePreparation:
                     save_template(path, tile)  # 保留文件名，已有优先级继续匹配同一角色。
             if tile.shape != (40, 40, 3):
                 raise ValueError(f"备战模板应为 40×40 的彩色特征图：{path}")
+            if path.stem.startswith("character_") and float(np.std(tile)) < PORTRAIT_MIN_STD:
+                CUS_LOGGER.warning("跳过异常低方差备战角色模板：%s", path.name)
+                continue
             self.templates[path.stem] = tile
         self.badges = {}
         for path in sorted(resource_path(__file__, "templates/badges").glob("*.png")):
@@ -414,9 +422,9 @@ class BattlePreparation:
                 if score > best_score:
                     best_name, best_score = name, score
             if best_score < MATCH_THRESHOLD:
-                if kind in ("unknown", "empty"):
-                    # 陌生画面和纯色过渡格都不进入持久模板库。
-                    slots.append(BenchSlot(index, "", kind, ()))
+                if kind in ("unknown", "empty") or float(np.std(portrait)) < PORTRAIT_MIN_STD:
+                    # 陌生画面与纯色/暗色过渡格都不进入持久模板库。
+                    slots.append(BenchSlot(index, "", "empty" if kind == "character" else kind, ()))
                     continue
                 digest = hashlib.sha256(portrait.tobytes()).hexdigest()[:12]
                 best_name = f"{kind}_{digest}"
@@ -480,6 +488,10 @@ class BattlePreparation:
                 score = match_score(search, self.area_tiles[area][index])
                 if score >= MATCH_THRESHOLD:
                     vacancies[area].append(index)
+                elif score >= AREA_EMPTY_FALLBACK_SCORE:
+                    tile = frame[top:bottom, left:right]
+                    if tile.size and float(np.std(cv2.cvtColor(tile, cv2.COLOR_BGR2GRAY))) < AREA_EMPTY_MAX_STD:
+                        vacancies[area].append(index)
         return vacancies
 
 
@@ -588,3 +600,158 @@ def plan_deployment(
         if rank[incoming.template] < rank.get(members[area][target], len(rank)):
             return [Deployment(incoming.index, area, target, members[area][target])]
     return []
+
+
+def detect_card_equip_count(frame: np.ndarray, card_box: tuple[int, int, int, int]) -> int:
+    """识别棋盘卡位底部已穿戴装备槽数量（0～3），彻底防止给满装角色硬拖装备。"""
+    if frame is None or frame.ndim != 3:
+        return 0
+    x1, _, x2, y2 = card_box
+    cx = (x1 + x2) // 2
+    y_top, y_bot = min(frame.shape[0], y2 + 2), min(frame.shape[0], y2 + 34)
+    x_left, x_right = max(0, cx - 52), min(frame.shape[1], cx + 52)
+    if y_bot - y_top < 12 or x_right - x_left < 20:
+        return 0
+    strip = frame[y_top:y_bot, x_left:x_right]
+    col_std = strip.std(axis=(0, 2))
+    # 实机中空卡位下方的紫色横条只有 1~3 像素高，真实装备图标高度通常在 18~26 像素；要求单列至少 6 行亮像素。
+    col_rows = (strip[:, :, 1] > 115).sum(axis=0)
+    active = (col_std > 25) & (col_rows >= 6)
+    closed = cv2.morphologyEx(active.astype(np.uint8).reshape(1, -1), cv2.MORPH_CLOSE, np.ones((1, 5), np.uint8)).ravel()
+    count, _, stats, _ = cv2.connectedComponentsWithStats(closed.reshape(1, -1))
+    widths = [int(stats[i, cv2.CC_STAT_WIDTH]) for i in range(1, count) if stats[i, cv2.CC_STAT_WIDTH] >= 18]
+    if not widths:
+        return 0
+    return min(3, sum(max(1, round(w / 32.0)) for w in widths))
+
+
+def detect_card_stars(frame: np.ndarray, card_box: tuple[int, int, int, int], zone: str = "bench") -> int | None:
+    """读取单张角色卡底部高亮金星/蓝星星级（1～3），无法确认时返回 None。"""
+    if frame is None or frame.ndim != 3:
+        return None
+    x1, y1, x2, y2 = card_box
+    cx = (x1 + x2) // 2
+    top = min(frame.shape[0], y1 + (65 if zone != "bench" else 88))
+    bottom = min(frame.shape[0], y2 - 2)
+    x_left, x_right = max(0, cx - 36), min(frame.shape[1], cx + 36)
+    if bottom - top < 10 or x_right - x_left < 20:
+        return None
+    patch = frame[top:bottom, x_left:x_right].astype(np.int16)
+    b, g, r = patch[:, :, 0], patch[:, :, 1], patch[:, :, 2]
+    gold = (r > 215) & (g > 160) & (g - b > 22)
+    blue = (b > 225) & (g > 195) & (b - r > 32)
+    mid_x = float(cx - x_left)
+    best = 0
+    for mask in (gold, blue):
+        num, _, stats, cents = cv2.connectedComponentsWithStats(mask.astype(np.uint8))
+        pts = [
+            (float(cents[i][0]), float(cents[i][1]))
+            for i in range(1, num)
+            if 22 <= stats[i, cv2.CC_STAT_AREA] <= 180
+            and 5 <= stats[i, cv2.CC_STAT_WIDTH] <= 22
+            and 5 <= stats[i, cv2.CC_STAT_HEIGHT] <= 20
+        ]
+        # 按 Y 坐标聚类到同一水平行，再以星标排布规律过滤背景光效噪点
+        pts.sort(key=lambda p: p[1], reverse=True)
+        visited: list[bool] = [False] * len(pts)
+        for idx, (_, py) in enumerate(pts):
+            if visited[idx]:
+                continue
+            row = sorted(p for j, p in enumerate(pts) if not visited[j] and abs(p[1] - py) <= 5)
+            for j, p in enumerate(pts):
+                if abs(p[1] - py) <= 5:
+                    visited[j] = True
+            if len(row) == 1 and abs(row[0][0] - mid_x) <= 14:
+                best = max(best, 1)
+            elif 2 <= len(row) <= 3 and all(11 <= b0[0] - a0[0] <= 26 for a0, b0 in zip(row, row[1:])):
+                if abs((row[0][0] + row[-1][0]) / 2 - mid_x) <= 16:
+                    best = max(best, len(row))
+    return best if 1 <= best <= 3 else None
+
+
+def is_vivid_item_patch(patch: np.ndarray, *, min_std: float = 28.0, min_peak: int = 165, min_ratio: float = 0.03) -> bool:
+    """判断 44×44 装备/工具切片是否包含真实高对比道具轮廓，避免右栏暗紫墙缝误报。"""
+    if patch is None or patch.size == 0 or patch.ndim != 3:
+        return False
+    core = patch[6:38, 6:38] if patch.shape[0] >= 44 and patch.shape[1] >= 44 else patch
+    gray = cv2.cvtColor(core, cv2.COLOR_BGR2GRAY)
+    return (
+        int(core.max()) >= min_peak
+        and float(gray.std()) >= min_std
+        and float((core > min_peak).mean()) >= min_ratio
+    )
+
+
+def detect_inventory_rail_positions(frame: np.ndarray, *, tracked_bar: bool = False) -> list[tuple[int, int]]:
+    """探测右侧装备栏占格的精确中心坐标，自动兼容「装备追踪中」状态条引起的 23 像素下移。"""
+    if frame is None or frame.ndim != 3 or frame.shape[0] < 680 or frame.shape[1] < 1890:
+        return []
+    start_y = 268 if tracked_bar else 245
+    found: list[tuple[int, int]] = []
+    for slot_idx in range(6):
+        cy = start_y + 77 * slot_idx
+        patch = frame[cy - 22:cy + 22, 1822:1866]
+        if is_vivid_item_patch(patch):
+            found.append((1844, cy))
+        else:
+            break
+    return found
+
+
+def detect_tool_positions(frame: np.ndarray, *, tracked_bar: bool = False) -> list[tuple[int, int]]:
+    """探测右栏顶部工具行（拆装扳手 / 重铸熔炉）的可用格位中心坐标。"""
+    if frame is None or frame.ndim != 3 or frame.shape[0] < 240 or frame.shape[1] < 1890:
+        return []
+    cy = 178 if tracked_bar else 155
+    tools: list[tuple[int, int]] = []
+    for cx in (1844, 1775):
+        patch = frame[cy - 22:cy + 22, cx - 22:cx + 22]
+        if is_vivid_item_patch(patch, min_std=32.0, min_peak=170, min_ratio=0.04):
+            tools.append((cx, cy))
+    return tools
+
+
+class ItemIconCatalog:
+    """S2 装备与工具图标特征库（44×44 BGR），支持自学习增量入库。"""
+
+    def __init__(self, folder: Path | str | None = None) -> None:
+        self.folder = Path(folder) if folder is not None else resource_path(__file__, "templates/s2_items")
+        self.folder.mkdir(parents=True, exist_ok=True)
+        self.templates: dict[str, np.ndarray] = {}
+        self.reload()
+
+    def reload(self) -> None:
+        """从目录重载所有装备图标模板。"""
+        self.templates.clear()
+        for path in sorted(self.folder.glob("*.png")):
+            img = find_image_by_name(str(path.resolve()))
+            if img is None or img.ndim != 3:
+                continue
+            if img.shape[:2] != (44, 44):
+                img = cv2.resize(img, (44, 44), interpolation=cv2.INTER_AREA)
+            self.templates[path.stem] = img
+
+    def identify(self, patch: np.ndarray, *, threshold: float = 0.78) -> str | None:
+        """比对一个 44×44 装备/工具图标切片并返回匹配名称。"""
+        if patch is None or patch.size == 0 or patch.ndim != 3 or not self.templates:
+            return None
+        sample = patch if patch.shape[:2] == (44, 44) else cv2.resize(patch, (44, 44), interpolation=cv2.INTER_AREA)
+        best_name: str | None = None
+        best_score = -1.0
+        for name, tpl in self.templates.items():
+            # 模板内部取 34×34 中心避免外圈边框/角标数量数字（如 1 / ∞）干扰匹配
+            score = match_score(sample[3:41, 3:41], tpl[5:39, 5:39])
+            if score > best_score:
+                best_score = score
+                best_name = name
+        return best_name if best_score >= threshold else None
+
+    def save_item(self, name: str, patch: np.ndarray) -> None:
+        """学习并持久化一条新的装备或工具图标模板。"""
+        if not name or patch is None or patch.size == 0 or patch.ndim != 3:
+            return
+        sample = patch if patch.shape[:2] == (44, 44) else cv2.resize(patch, (44, 44), interpolation=cv2.INTER_AREA)
+        target = self.folder / f"{name}.png"
+        save_template(target, sample)
+        self.templates[name] = sample.copy()
+

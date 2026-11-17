@@ -19,6 +19,10 @@ from route import PATHS
 PATHS["user"] = str(TEST_USER_DIR)
 PATHS["backup"] = str(TEST_USER_DIR / "backup")
 
+# 隔离宿主机前台让位锁与黄金与机械调度标记目录，避免本地运行状态影响单元测试。
+os.environ.setdefault("SIMS_ZZZ_LOCK_PATH", str(TEST_USER_DIR / "ZZZ_RUNNING.lock"))
+os.environ.setdefault("SIMS_GG_TOOLS_DIR", str(TEST_USER_DIR / "tools"))
+
 
 def _cleanup_test_user_dir():
     shutil.rmtree(TEST_USER_DIR, ignore_errors=True)

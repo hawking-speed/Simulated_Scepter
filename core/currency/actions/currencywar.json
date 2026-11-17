@@ -1,41 +1,42 @@
 [
     {
-        "name": "货币战争外",
+        "name": "连接中断重连",
         "trigger": {
-            "text": "货币战争",
-            "box": [
-                1217,
-                589,
-                1351,
-                621
-            ],
+            "text": "失去网络连接",
+            "box": [600, 460, 1320, 580],
+            "interval": 2,
             "redundancy": 30
         },
         "actions": [
-            {
-                "press": "f"
-            }
+            "s2_handle_reconnect"
         ]
     },
     {
         "name": "月卡",
         "trigger": {
             "text": "列车补给",
-            "box": [
-                880,
-                55,
-                1039,
-                97
-            ],
+            "box": [880, 55, 1039, 97],
             "interval": 2,
             "redundancy": 30
         },
         "actions": [
             {
-                "position": [
-                    900,
-                    1000
-                ]
+                "position": [900, 1000]
+            }
+        ]
+    },
+    {
+        "name": "助燃券上限",
+        "trigger": {
+            "text": "助燃券持有数量已达上限",
+            "box": [380, 320, 1550, 650],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            {
+                "text": "确认",
+                "box": [715, 560, 1210, 830]
             }
         ]
     },
@@ -43,691 +44,25 @@
         "name": "关闭积分奖励",
         "trigger": {
             "text": "积分奖励",
-            "box": [
-                77,
-                327,
-                192,
-                359
-            ],
+            "box": [55, 300, 260, 365],
+            "interval": 2,
             "redundancy": 30
         },
         "actions": [
-            {
-                "press": "esc"
-            }
+            "s2_handle_weekly_reward"
         ]
     },
     {
         "name": "积分线已更新",
         "trigger": {
             "text": "积分线已更新",
-            "box": [
-                871,
-                521,
-                1043,
-                554
-            ],
-            "redundancy": 30
-        },
-        "actions": [
-            {
-                "position": [
-                    900,
-                    1000
-                ]
-            }
-        ]
-    },
-    {
-        "name": "开始游戏",
-        "trigger": {
-            "text": "开始游戏",
-            "box": [
-                872,
-                814,
-                1067,
-                864
-            ],
-            "redundancy": 30
-        },
-        "actions": [
-            {
-                "position": [
-                    900,
-                    1000
-                ]
-            }
-        ]
-    },
-    {
-        "name": "开始游戏2",
-        "trigger": {
-            "text": "点击进入",
-            "box": [
-                905,
-                996,
-                1012,
-                1033
-            ],
-            "redundancy": 30
-        },
-        "actions": [
-            {
-                "position": [
-                    900,
-                    1000
-                ]
-            }
-        ]
-    },
-    {
-        "name": "继续进度",
-        "trigger": {
-            "redundancy": 30,
-            "text": "继续进度",
-            "box": [
-                1640,
-                944,
-                1743,
-                976
-            ]
-        },
-        "actions": [
-            {
-                "position": [
-                    1700,
-                    950
-                ]
-            }
-        ]
-    },
-    {
-        "name": "开始货币战争",
-        "trigger": {
-            "text": "数据银行",
-            "box": [
-                1489,
-                549,
-                1592,
-                585
-            ],
-            "interval": 1,
-            "redundancy": 30
-        },
-        "actions": [
-            {
-                "position": [
-                    1585,
-                    972
-                ]
-            },
-            {
-                "set_state": "start_currencywar"
-            }
-        ]
-    },
-    {
-        "name": "切换超频博弈",
-        "trigger": {
-            "text": "进入标准博弈",
-            "box": [
-                1563,
-                946,
-                1711,
-                973
-            ],
-            "interval": 1,
-            "redundancy": 30
-        },
-        "actions": [
-            {
-                "position": [
-                    153,
-                    418
-                ]
-            },
-            {
-                "sleep": 1
-            }
-        ]
-    },
-    {
-        "name": "进入超频博弈",
-        "trigger": {
-            "text": "进入超频博弈",
-            "box": [
-                1563,
-                946,
-                1711,
-                973
-            ],
-            "interval": 1,
-            "redundancy": 30
-        },
-        "actions": [
-            {
-                "position": [
-                    1637,
-                    960
-                ]
-            },
-            {
-                "set_state": "difficulty_select"
-            }
-        ]
-    },
-    {
-        "name": "判断超频博弈难度",
-        "trigger": {
-            "text": "开始对局",
-            "box": [
-                1643,
-                946,
-                1742,
-                973
-            ],
-            "interval": 1,
-            "redundancy": 30
-        },
-        "actions": [
-            "handle_difficulty_selection"
-        ]
-    },
-    {
-        "name": "本场对局首领点击下一步",
-        "trigger": {
-            "text": "本场对局首领",
-            "box": [
-                1440,
-                741,
-                1591,
-                772
-            ],
-            "interval": 1,
-            "redundancy": 30
-        },
-        "actions": [
-            {
-                "position": [
-                    1512,
-                    984
-                ]
-            }
-        ]
-    },
-    {
-        "name": "点击空白（初始）",
-        "trigger": {
-            "text": "点击空白处继续",
-            "box": [
-                875,
-                948,
-                1047,
-                975
-            ],
+            "box": [850, 500, 1080, 570],
             "interval": 2,
             "redundancy": 30
         },
         "actions": [
             {
-                "position": [
-                    961,
-                    962
-                ]
-            }
-        ]
-    },
-    {
-        "name": "点击空白（首领）",
-        "trigger": {
-            "text": "点击空白处继续",
-            "box": [
-                870,
-                778,
-                1048,
-                807
-            ],
-            "interval": 2,
-            "redundancy": 30
-        },
-        "actions": [
-            {
-                "position": [
-                    959,
-                    793
-                ]
-            }
-        ]
-    },
-    {
-        "name": "出战人数",
-        "trigger": {
-            "text": "本局不再提示",
-            "box": [
-                911,
-                590,
-                1059,
-                617
-            ],
-            "interval": 2,
-            "redundancy": 30,
-            "condition": "startbattle"
-        },
-        "actions": [
-            {
-                "position": [
-                    1185,
-                    670
-                ]
-            },
-            {
-                "set_state": "startbattle"
-            }
-        ]
-    },
-    {
-        "name": "选择投资环境",
-        "trigger": {
-            "text": "投资环境",
-            "box": [
-                897,
-                80,
-                1018,
-                114
-            ],
-            "interval": 5,
-            "redundancy": 30
-        },
-        "actions": [
-            "select_envir"
-        ]
-    },
-    {
-        "name": "选择投资策略",
-        "trigger": {
-            "text": "请选择投资策略",
-            "box": [
-                857,
-                84,
-                1060,
-                115
-            ],
-            "interval": 5,
-            "redundancy": 30
-        },
-        "actions": [
-            "select_strategy"
-        ]
-    },
-    {
-        "name": "盛会之星",
-        "trigger": {
-            "text": "请选择强化角色",
-            "box": [
-                1415,
-                495,
-                1565,
-                522
-            ],
-            "interval": 2,
-            "redundancy": 30,
-            "once": true
-        },
-        "actions": [
-            {
-                "position": [
-                    921,
-                    310
-                ]
-            },
-            {
-                "position": [
-                    1491,
-                    563
-                ]
-            }
-        ]
-    },
-    {
-        "name": "领航员",
-        "trigger": {
-            "text": "请选择强化角色",
-            "box": [
-                1415,
-                529,
-                1565,
-                556
-            ],
-            "interval": 2,
-            "redundancy": 30,
-            "once": true
-        },
-        "actions": [
-            {
-                "position": [
-                    1008,
-                    376
-                ]
-            },
-            {
-                "position": [
-                    1490,
-                    597
-                ]
-            }
-        ]
-    },
-    {
-        "name": "啊哈大悦",
-        "trigger": {
-            "text": "查看详情",
-            "box": [
-                625,
-                329,
-                717,
-                356
-            ],
-            "interval": 2,
-            "redundancy": 30,
-            "once": true
-        },
-        "actions": [
-            {
-                "position": [
-                    663,
-                    290
-                ]
-            }
-        ]
-    },
-    {
-        "name": "命运圣杯祈愿试炼",
-        "trigger": {
-            "text": "请选择一个祈愿试炼",
-            "box": [
-                1400,
-                572,
-                1595,
-                599
-            ],
-            "interval": 2,
-            "redundancy": 30,
-            "once": true
-        },
-        "actions": [
-            {
-                "position": [
-                    684,
-                    398
-                ]
-            },
-            {
-                "sleep": 0.5
-            },
-            {
-                "position": [
-                    1495,
-                    639
-                ]
-            }
-        ]
-    },
-    {
-        "name": "物品详情确认选择",
-        "trigger": {
-            "text": "确认选择",
-            "box": [
-                700,
-                880,
-                1250,
-                1050
-            ],
-            "interval": 3
-        },
-        "actions": [
-            {
-                "text": "确认选择",
-                "box": [
-                    700,
-                    880,
-                    1250,
-                    1050
-                ]
-            }
-        ]
-    },
-    {
-        "name": "物品详情弹层",
-        "trigger": {
-            "text": "装备",
-            "box": [
-                750,
-                150,
-                900,
-                270
-            ],
-            "interval": 3,
-            "redundancy": 40
-        },
-        "actions": [
-            {
-                "press": "esc"
-            }
-        ]
-    },
-    {
-        "name": "独家代言",
-        "trigger": {
-            "text": "查看详情",
-            "box": [
-                625,
-                329,
-                1008,
-                356
-            ],
-            "interval": 2,
-            "redundancy": 30,
-            "once": true
-        },
-        "actions": [
-            {
-                "position": [
-                    809,
-                    210
-                ]
-            }
-        ]
-    },
-    {
-        "name": "前台区域无角色",
-        "trigger": {
-            "text": "前台区域无角色",
-            "box": [
-                816,
-                512,
-                1104,
-                539
-            ],
-            "interval": 2,
-            "redundancy": 30
-        },
-        "actions": [
-            {
-                "position": [
-                    978,
-                    671
-                ]
-            }
-        ]
-    },
-    {
-        "name": "补给",
-        "trigger": {
-            "text": "补给阶段",
-            "box": [
-                908,
-                139,
-                1012,
-                171
-            ],
-            "interval": 5,
-            "redundancy": 30
-        },
-        "actions": [
-            {
-                "position": [
-                    965,
-                    698
-                ]
-            },
-            {
-                "position": [
-                    1710,
-                    983
-                ]
-            }
-        ]
-    },
-    {
-        "name": "1-1主界面进战",
-        "trigger": {
-            "text": "奖励",
-            "box": [
-                571,
-                82,
-                605,
-                103
-            ],
-            "redundancy": 30,
-            "interval": 3,
-            "condition": "1-1"
-        },
-        "actions": [
-            "handle_1_1_reward"
-        ]
-    },
-    {
-        "name": "跳过战斗",
-        "trigger": {
-            "text": "跳过",
-            "box": [
-                1784,
-                730,
-                1852,
-                770
-            ],
-            "interval": 3,
-            "redundancy": 60,
-            "condition": "currency_main"
-        },
-        "actions": [
-            {
-                "position": [
-                    1818,
-                    750
-                ]
-            }
-        ]
-    },
-    {
-        "name": "战斗中",
-        "trigger": {
-            "text": "伤害",
-            "box": [
-                1793,
-                209,
-                1833,
-                231
-            ],
-            "interval": 3,
-            "redundancy": 30,
-            "condition": "currency_main"
-        },
-        "actions": [
-            {
-                "set_state": "startbattle"
-            }
-        ]
-    },
-    {
-        "name": "战斗结束后",
-        "trigger": {
-            "text": "继续挑战",
-            "box": [
-                908,
-                878,
-                1012,
-                910
-            ],
-            "interval": 2,
-            "redundancy": 30,
-            "condition": "startbattle"
-        },
-        "actions": [
-            {
-                "position": [
-                    960,
-                    894
-                ]
-            },
-            "handle_battle_finished"
-        ]
-    },
-    {
-        "name": "自动战斗检测",
-        "trigger": {
-            "photo": "auto_battle",
-            "pos": {"x": 21,"y": 919},
-            "threshold": 0.9,
-            "condition": "startbattle"
-        },
-        "actions": [
-            "auto_battle"
-        ]
-    },
-    {
-        "name": "点击前往参与货币战争",
-        "trigger": {
-            "text": "旷宇纷争",
-            "box": [
-                99,
-                62,
-                203,
-                98
-            ],
-            "redundancy": 30
-        },
-        "actions": [
-            {
-                "position": [
-                    1491,
-                    878
-                ]
-            },
-            {
-                "set_state": "start_currencywar"
-            }
-        ]
-    },
-    {
-        "name": "打开矿宇纷争界面",
-        "trigger": {
-            "text": "星际和平指南",
-            "box": [
-                100,
-                35,
-                222,
-                66
-            ],
-            "redundancy": 30,
-            "condition": "goto_currency"
-        },
-        "actions": [
-            {
-                "position": [
-                    593,
-                    212
-                ]
+                "position": [960, 1000]
             }
         ]
     },
@@ -746,22 +81,130 @@
         "name": "重开2",
         "trigger": {
             "text": "放弃并结算",
-            "box": [
-                707,
-                728,
-                831,
-                756
-            ],
+            "box": [660, 700, 900, 810],
             "interval": 2,
             "redundancy": 30,
             "condition": "exit"
         },
         "actions": [
             {
-                "position": [
-                    769,
-                    742
-                ]
+                "text": "放弃并结算",
+                "box": [660, 700, 900, 810]
+            }
+        ]
+    },
+    {
+        "name": "确定结束进程",
+        "trigger": {
+            "text": "确定结束进程",
+            "box": [720, 360, 1500, 480],
+            "interval": 2,
+            "redundancy": 30,
+            "condition": "exit"
+        },
+        "actions": [
+            {
+                "text": "确认",
+                "box": [740, 680, 1250, 810]
+            }
+        ]
+    },
+    {
+        "name": "意外暂停菜单",
+        "trigger": {
+            "text": "是否暂时离开",
+            "box": [620, 400, 1300, 560],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_pause_modal"
+        ]
+    },
+    {
+        "name": "意外中断菜单",
+        "trigger": {
+            "text": "是否中断挑战",
+            "box": [600, 340, 1320, 560],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_pause_modal"
+        ]
+    },
+    {
+        "name": "对局胜利结算",
+        "trigger": {
+            "text": "对局胜利",
+            "box": [410, 135, 1350, 410],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_match_result"
+        ]
+    },
+    {
+        "name": "对局失败结算",
+        "trigger": {
+            "text": "对局失败",
+            "box": [410, 135, 1350, 410],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_match_result"
+        ]
+    },
+    {
+        "name": "对局未完成结算",
+        "trigger": {
+            "text": "对局未完成",
+            "box": [410, 135, 1350, 410],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_match_result"
+        ]
+    },
+    {
+        "name": "职级提升结算",
+        "trigger": {
+            "text": "职级提升",
+            "box": [780, 135, 1140, 240],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_match_result"
+        ]
+    },
+    {
+        "name": "重开最终",
+        "trigger": {
+            "text": "返回货币战争",
+            "box": [500, 735, 1900, 1055],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_match_result"
+        ]
+    },
+    {
+        "name": "前往结算",
+        "trigger": {
+            "text": "前往结算",
+            "box": [650, 785, 1270, 1020],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            {
+                "text": "前往结算",
+                "box": [650, 785, 1270, 1020]
             }
         ]
     },
@@ -769,21 +212,14 @@
         "name": "重开3",
         "trigger": {
             "text": "下一步",
-            "box": [
-                921,
-                881,
-                998,
-                912
-            ],
+            "box": [650, 785, 1670, 1030],
             "interval": 2,
             "redundancy": 30
         },
         "actions": [
             {
-                "position": [
-                    960,
-                    897
-                ]
+                "text": "下一步",
+                "box": [650, 785, 1670, 1030]
             }
         ]
     },
@@ -791,123 +227,692 @@
         "name": "重开4",
         "trigger": {
             "text": "下一页",
-            "box": [
-                923,
-                883,
-                996,
-                913
-            ],
+            "box": [650, 785, 1670, 1030],
             "interval": 2,
             "redundancy": 30
         },
         "actions": [
             {
-                "position": [
-                    960,
-                    898
-                ]
+                "text": "下一页",
+                "box": [650, 785, 1670, 1030]
             }
         ]
     },
     {
-        "name": "重开最终",
+        "name": "战斗结束后",
         "trigger": {
-            "text": "返回货币战争",
-            "box": [
-                883,
-                882,
-                1032,
-                913
-            ],
+            "text": "继续挑战",
+            "box": [650, 785, 1270, 1020],
             "interval": 2,
             "redundancy": 30
         },
         "actions": [
             {
-                "position": [
-                    958,
-                    898
-                ]
-            }
+                "text": "继续挑战",
+                "box": [650, 785, 1270, 1020]
+            },
+            "handle_battle_finished"
         ]
     },
     {
-        "name": "前往结算",
+        "name": "点击空白继续弹窗",
         "trigger": {
+            "text": "点击空白处继续",
+            "box": [520, 640, 1780, 1065],
             "interval": 2,
-            "redundancy": 30,
-            "text": "前往结算",
-            "box": [
-                909,
-                879,
-                1012,
-                911
-            ]
+            "redundancy": 30
         },
         "actions": [
             {
-                "position": [
-                    958,
-                    898
-                ]
+                "text": "点击空白处继续",
+                "box": [520, 640, 1780, 1065]
             }
         ]
     },
     {
-        "name": "出战",
+        "name": "点击空白关闭弹窗",
         "trigger": {
-            "state_only": true,
-            "condition": "battle_ready",
-            "interval": 3
+            "text": "点击空白处关闭",
+            "box": [520, 620, 1400, 1065],
+            "interval": 2,
+            "redundancy": 30
         },
         "actions": [
-            "start_battle"
+            {
+                "text": "点击空白处关闭",
+                "box": [520, 620, 1400, 1065]
+            }
         ]
     },
     {
-        "name": "商店",
+        "name": "出战人数",
+        "trigger": {
+            "text": "本局不再提示",
+            "box": [730, 480, 1160, 730],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            {
+                "text": "确认",
+                "box": [780, 605, 1280, 830]
+            },
+            {
+                "set_state": "startbattle"
+            }
+        ]
+    },
+    {
+        "name": "前台区域无角色",
+        "trigger": {
+            "text": "前台区域无角色",
+            "box": [625, 360, 1350, 620],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_empty_front"
+        ]
+    },
+    {
+        "name": "备战席已满",
+        "trigger": {
+            "text": "备战席已满",
+            "box": [420, 480, 1510, 570],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_bench_overflow"
+        ]
+    },
+    {
+        "name": "替换主角光环确认",
+        "trigger": {
+            "text": "替换该角色原有光环",
+            "box": [700, 440, 1220, 580],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_halo_replace"
+        ]
+    },
+    {
+        "name": "重选主角光环提示",
+        "trigger": {
+            "text": "重选主角光",
+            "box": [240, 150, 780, 340],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_halo_tutorial"
+        ]
+    },
+    {
+        "name": "主角光环与奇遇详情",
+        "trigger": {
+            "text": "主角光环与奇遇详情",
+            "box": [520, 30, 960, 105],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_halo_detail"
+        ]
+    },
+    {
+        "name": "装备合成预览弹窗",
+        "trigger": {
+            "text": "可合成列表",
+            "box": [840, 290, 1080, 360],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            {
+                "position": [1863, 65]
+            }
+        ]
+    },
+    {
+        "name": "数据统计弹窗",
+        "trigger": {
+            "text": "数据统计",
+            "box": [340, 210, 620, 310],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            {
+                "position": [1495, 265]
+            }
+        ]
+    },
+    {
+        "name": "装备推荐弹层",
+        "trigger": {
+            "text": "推荐装备",
+            "box": [940, 545, 1140, 645],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_equipment_panel"
+        ]
+    },
+    {
+        "name": "角色详情弹层",
+        "trigger": {
+            "text": "出售",
+            "box": [1680, 875, 1915, 965],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            {
+                "press": "esc"
+            }
+        ]
+    },
+    {
+        "name": "奇遇详情弹层",
+        "trigger": {
+            "text": "特殊角色携带的装备无法拆除",
+            "box": [1380, 640, 1820, 715],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            {
+                "press": "esc"
+            }
+        ]
+    },
+    {
+        "name": "选择投资环境",
+        "trigger": {
+            "text": "投资环境",
+            "box": [840, 60, 1080, 130],
+            "interval": 4,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_select_environment"
+        ]
+    },
+    {
+        "name": "选择投资策略",
+        "trigger": {
+            "text": "投资策略",
+            "box": [820, 60, 1100, 130],
+            "interval": 4,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_select_strategy"
+        ]
+    },
+    {
+        "name": "补给",
+        "trigger": {
+            "text": "补给阶段",
+            "box": [800, 95, 1120, 200],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_supply"
+        ]
+    },
+    {
+        "name": "主角光环",
+        "trigger": {
+            "text": "选择一个角色获得主角光环",
+            "box": [600, 40, 1320, 120],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_halo"
+        ]
+    },
+    {
+        "name": "主角光环详情",
+        "trigger": {
+            "text": "角色详情",
+            "box": [785, 920, 1135, 1015],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            {
+                "position": [1863, 65]
+            }
+        ]
+    },
+    {
+        "name": "幕后茶歇",
+        "trigger": {
+            "text": "摇一摇",
+            "box": [1350, 785, 1780, 880],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_tea"
+        ]
+    },
+    {
+        "name": "幕后茶歇聊一聊",
+        "trigger": {
+            "text": "聊一聊",
+            "box": [180, 785, 574, 880],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_tea"
+        ]
+    },
+    {
+        "name": "幕后茶歇主页",
+        "trigger": {
+            "text": "幕后茶歇",
+            "box": [820, 120, 1100, 200],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_tea"
+        ]
+    },
+    {
+        "name": "享用茶歇页面",
+        "trigger": {
+            "text": "享用茶歇",
+            "box": [820, 120, 1100, 200],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_tea"
+        ]
+    },
+    {
+        "name": "茶歇奖励弹窗",
+        "trigger": {
+            "text": "茶歇奖励",
+            "box": [530, 115, 1385, 245],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_tea"
+        ]
+    },
+    {
+        "name": "茶歇未领提醒",
+        "trigger": {
+            "text": "离开幕后茶歇前",
+            "box": [680, 170, 1280, 260],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_tea"
+        ]
+    },
+    {
+        "name": "遭遇节点",
+        "trigger": {
+            "text": "遭遇节点",
+            "box": [820, 40, 1120, 160],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_encounter"
+        ]
+    },
+    {
+        "name": "机心巧匠改装",
+        "trigger": {
+            "text": "机心巧匠",
+            "box": [860, 40, 1220, 120],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_svarog"
+        ]
+    },
+    {
+        "name": "奇兽花园",
+        "trigger": {
+            "text": "奇兽花园",
+            "box": [880, 40, 1200, 120],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_board_effect"
+        ]
+    },
+    {
+        "name": "骇入效果",
+        "trigger": {
+            "text": "请选择一个骇入效果",
+            "box": [620, 95, 1490, 170],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_board_effect"
+        ]
+    },
+    {
+        "name": "梦境交织共舞",
+        "trigger": {
+            "text": "梦境交织",
+            "box": [600, 40, 1465, 110],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_dance"
+        ]
+    },
+    {
+        "name": "巡海游侠任命",
+        "trigger": {
+            "text": "巡海游侠",
+            "box": [600, 40, 1465, 110],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_ranger"
+        ]
+    },
+    {
+        "name": "从师选择",
+        "trigger": {
+            "text": "从师",
+            "box": [880, 35, 1200, 110],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_master"
+        ]
+    },
+    {
+        "name": "武装星徽选择",
+        "trigger": {
+            "text": "请选择1个",
+            "box": [850, 75, 1210, 130],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_item_drawer"
+        ]
+    },
+    {
+        "name": "装备追踪弹窗",
+        "trigger": {
+            "text": "装备追踪",
+            "box": [480, 225, 760, 315],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_equip_tracking"
+        ]
+    },
+    {
+        "name": "攻略阵容追踪",
+        "trigger": {
+            "text": "热门攻略",
+            "box": [660, 95, 920, 165],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_strategy_guide"
+        ]
+    },
+    {
+        "name": "黑市商店",
+        "trigger": {
+            "text": "黑市主理人",
+            "box": [830, 45, 1230, 115],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_special_shop"
+        ]
+    },
+    {
+        "name": "开拓商店",
+        "trigger": {
+            "text": "开拓商店",
+            "box": [640, 45, 1460, 115],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_special_shop"
+        ]
+    },
+    {
+        "name": "物品详情确认选择",
+        "trigger": {
+            "text": "确认选择",
+            "box": [700, 860, 1700, 1050],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_generic_choice"
+        ]
+    },
+    {
+        "name": "通用节点选择",
+        "trigger": {
+            "text": "请选择",
+            "box": [555, 38, 1370, 215],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_generic_choice"
+        ]
+    },
+    {
+        "name": "自动战斗检测",
+        "trigger": {
+            "photo": "auto_battle",
+            "pos": {
+                "x": 21,
+                "y": 919
+            },
+            "threshold": 0.9,
+            "condition": "startbattle"
+        },
+        "actions": [
+            "auto_battle"
+        ]
+    },
+    {
+        "name": "战斗中",
+        "trigger": {
+            "text": "伤害",
+            "box": [1793, 209, 1833, 231],
+            "interval": 3,
+            "redundancy": 30
+        },
+        "actions": [
+            {
+                "set_state": "startbattle"
+            }
+        ]
+    },
+    {
+        "name": "商店开启",
         "trigger": {
             "text": "收起",
-            "box": [
-                1597,
-                967,
-                1644,
-                992
-            ],
-            "interval": 3,
-            "redundancy": 60
+            "box": [1540, 940, 1700, 1015],
+            "interval": 2,
+            "redundancy": 30
         },
         "actions": [
-            {
-                "position": [
-                    1620,
-                    980
-                ]
-            }
+            "s2_manage_shop"
         ]
     },
     {
         "name": "出战前准备",
         "trigger": {
-            "text": "出战",
-            "box": [
-                1784,
-                730,
-                1852,
-                770
-            ],
-            "interval": 3,
-            "redundancy": 60
+            "text": "备战阶段",
+            "box": [220, 20, 560, 125],
+            "interval": 2,
+            "redundancy": 30
         },
         "actions": [
-            "prepare_battle"
+            "s2_prepare_and_advance"
+        ]
+    },
+    {
+        "name": "职级难度页",
+        "trigger": {
+            "text": "开始对局",
+            "box": [1550, 910, 1850, 1020],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_rank"
+        ]
+    },
+    {
+        "name": "入画奇航主页",
+        "trigger": {
+            "text": "开始货币战争",
+            "box": [1300, 900, 1895, 1030],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_home"
+        ]
+    },
+    {
+        "name": "优势布局界面",
+        "trigger": {
+            "text": "常驻优势",
+            "box": [620, 90, 920, 165],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_advantage"
+        ]
+    },
+    {
+        "name": "模式选择继续进度",
+        "trigger": {
+            "text": "继续进度",
+            "box": [1200, 880, 1910, 1040],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_modes"
+        ]
+    },
+    {
+        "name": "模式选择进入超频",
+        "trigger": {
+            "text": "进入超频博弈",
+            "box": [1200, 880, 1910, 1040],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_modes"
+        ]
+    },
+    {
+        "name": "模式选择进入标准",
+        "trigger": {
+            "text": "进入标准博弈",
+            "box": [1200, 880, 1910, 1040],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_modes"
+        ]
+    },
+    {
+        "name": "新手导航传送",
+        "trigger": {
+            "text": "货币战争入画奇航",
+            "box": [1350, 130, 1910, 230],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_unlock_nav"
+        ]
+    },
+    {
+        "name": "新手解锁任务页",
+        "trigger": {
+            "text": "试用货币战争新系统",
+            "box": [550, 200, 1200, 300],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_unlock_quest"
+        ]
+    },
+    {
+        "name": "点击前往参与货币战争",
+        "trigger": {
+            "text": "旷宇纷争",
+            "box": [90, 55, 220, 105],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_handle_guide_tab"
+        ]
+    },
+    {
+        "name": "打开旷宇纷争界面",
+        "trigger": {
+            "text": "星际和平指南",
+            "box": [90, 30, 240, 75],
+            "interval": 2,
+            "redundancy": 30
+        },
+        "actions": [
+            "s2_open_guide_tab"
         ]
     },
     {
         "name": "大世界",
         "trigger": {
             "photo": "smartphone",
-            "pos": {"x": 32,"y": 67},
+            "pos": {
+                "x": 32,
+                "y": 67
+            },
             "threshold": 0.96
         },
         "actions": [

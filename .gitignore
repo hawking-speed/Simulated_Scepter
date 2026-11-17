@@ -39,3 +39,6 @@ native/countdown/target/
 tool/_countdown_native.dll
 tool/_countdown_native.so
 tool/_countdown_native.dylib
+*.bak*
+core/currency/templates/bench/character_[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].png
+core/currency/templates/bench/item_[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].png

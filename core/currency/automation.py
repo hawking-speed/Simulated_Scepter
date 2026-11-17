@@ -21,6 +21,7 @@ from core.currency.run_history import (
     CurrencyRunHistory,
     get_newly_unlocked_investment,
 )
+from core.currency.s2_actions import ZZZ_LOCK_PATH, CurrencyS2Mixin
 from core.currency.settings import load_currency_settings, resolve_priority
 from core.currency.utils import CurrencyUtils, set_forground
 from route import PATHS
@@ -32,6 +33,17 @@ from tool.settings import load_settings
 from tool.storage import resource_path
 from tool.utils.Error import NormalEndError
 from tool.utils.tool import get_hwnd_and_text
+
+
+def _screen_digest(frame) -> np.ndarray | None:
+    """将截图压成 96×54 灰度缩略特征，用于低开销检测画面是否长时间静止不变。"""
+    if frame is None or not isinstance(frame, np.ndarray) or frame.ndim != 3 or frame.size == 0:
+        return None
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    if not isinstance(gray, np.ndarray):
+        return None
+    resized = cv2.resize(gray, (96, 54), interpolation=cv2.INTER_AREA)
+    return resized.astype(np.int16) if isinstance(resized, np.ndarray) else None
 
 
 def count_color(patch):
@@ -103,7 +115,9 @@ def split_count_line(patch):
         steps = np.diff(centers)
         moving = bool((steps >= 0).all() or (steps <= 0).all())
         if (
-            moving
+            left > 0
+            and right < patch.shape[1]
+            and moving
             and max(widths[0], widths[-1]) <= width * 0.5
             and np.median(widths) <= width * 0.35
             and abs(centers[-1] - centers[0]) >= width * 0.5
@@ -114,14 +128,17 @@ def split_count_line(patch):
 
 def read_count_number(recognizer, patch):
     """识别人数裁片一侧的数字；识别结果不是一个数字时返回 None。"""
+    if patch is None or getattr(patch, "size", 0) == 0 or patch.shape[0] < 1 or patch.shape[1] < 1:
+        return None
     digits = re.findall(r"\d+", recognizer.ocr_one_row(patch))
     if len(digits) != 1:
         return None
     return int(digits[0])
 
 
-class SimulatedCurrency(CurrencyUtils):
+class SimulatedCurrency(CurrencyS2Mixin, CurrencyUtils):
     def static_completed(self, name, result):
+        self._action_seq = getattr(self, "_action_seq", 0) + 1
         if name == "开始退出" and result == 0:
             self.latched_events.discard(name)
         self._on_static_action_completed(name)
@@ -207,6 +224,7 @@ class SimulatedCurrency(CurrencyUtils):
         # 记录本局是否刷出了必选（prior）投资环境
         self.prior_environment_found = False
         self.has_fresh = False
+        self.init_s2()
         exit_plane_text = "不退出" if self.set_exit_plane is None else f"第{self.set_exit_plane}面"
         CUS_LOGGER.info(f"货币战争退出位面设置为: {exit_plane_text}")
 
@@ -223,13 +241,26 @@ class SimulatedCurrency(CurrencyUtils):
         return texts
 
     def route (self):
+        self._guard_foreground = True
+        if ZZZ_LOCK_PATH.exists():
+            CUS_LOGGER.warning("检测到 ZZZ_RUNNING.lock，让位绝区零并停止启动")
+            self.stop()
+            return
         set_forground ()
         while not self._stop:
+            if ZZZ_LOCK_PATH.exists():
+                CUS_LOGGER.warning("检测到 ZZZ_RUNNING.lock，让位绝区零并退出等待")
+                self.stop()
+                break
             hwnd,Text = get_hwnd_and_text ()
             warn_game = False
             cnt = 0
             focus_reclaim_wait = max(1, 2*load_settings().get("game_focus_reclaim_wait_seconds", 600))
             while Text != "崩坏：星穹铁道" and Text != "云·星穹铁道" and not self._stop:
+                if ZZZ_LOCK_PATH.exists():
+                    CUS_LOGGER.warning("检测到 ZZZ_RUNNING.lock，让位绝区零并停止等待")
+                    self.stop()
+                    break
                 if self._stop:
                     raise NormalEndError
                 if not warn_game:
@@ -237,7 +268,7 @@ class SimulatedCurrency(CurrencyUtils):
                     CUS_LOGGER.warning (f"等待游戏窗口，当前窗口：{Text}")
                 time.sleep(0.5)
                 cnt += 1
-                if cnt == focus_reclaim_wait:
+                if cnt == focus_reclaim_wait and not ZZZ_LOCK_PATH.exists():
                     set_forground () # 将游戏窗口设为前台
                 hwnd,Text = get_hwnd_and_text ()
             if self._stop:
@@ -245,26 +276,146 @@ class SimulatedCurrency(CurrencyUtils):
             self.loop ()
         CUS_LOGGER.info ("已停止任务")
 
+    def _save_loop_screen(self, prefix: str) -> str:
+        shot = os.path.join(
+            PATHS["temp"],
+            "currencywar",
+            f"{prefix}_{time.strftime('%Y%m%d_%H%M%S')}.png",
+        )
+        os.makedirs(os.path.dirname(shot), exist_ok=True)
+        cv2.imwrite(shot, np.array(self.screen))
+        return shot
+
+    def _attempt_tiered_repair(self, tier: int, *, stage: str, reason: str, elapsed: float, prefix: str = "stuck_screen") -> bool:
+        """先存证并用多级自检修复脱困；返回 True 表示仅做完某级修复继续观察，False 表示应停机。"""
+        if tier >= 4:
+            shot = self._save_loop_screen(prefix)
+            CUS_LOGGER.error("连续卡死或画面冻结 %.0f 秒且多级自检修复均无效（%s），已存图 %s 并安全停机", elapsed, reason, shot)
+            return False
+        if tier == 1:
+            shot = self._save_loop_screen(prefix)
+            CUS_LOGGER.warning("检测到 %s（%.0f 秒），已存图 %s 并启动第 1 级自检修复", reason, elapsed, shot)
+        if hasattr(self, "_self_diagnose_and_repair"):
+            self._self_diagnose_and_repair(tier, stage=stage, reason=reason)
+        elif hasattr(self, "_recover_from_stagnation"):
+            self._recover_from_stagnation(stage)
+        else:
+            key_mouse_manager.click_point(500, 150)
+            key_mouse_manager.wait()
+        if tier >= 3:
+            try:
+                set_forground()
+            except Exception:
+                pass
+            if getattr(self, "state", None) == "startbattle":
+                self.update_state("currency_main")
+            key_mouse_manager.press("esc")
+            key_mouse_manager.wait()
+        return True
+
     def loop (self):
         CUS_LOGGER.info ("开始OCR识别，等待触发文字")
         silent_time = time.time ()
         shot_saved = False
+        silent_rounds = 0
+        esc_recoveries = 0
+        last_noncombat_stage = None
+        stage_noncombat_execs = 0
+        stage_noncombat_polls = 0
+        stage_stagnant_since = time.monotonic()
+        stage_tier = 0
+        last_digest = None
+        freeze_since = stage_stagnant_since
+        freeze_tier = 0
+        battle_streak = 0
+        nav_triggers = {"打开旷宇纷争界面", "点击前往参与货币战争", "新手解锁任务页", "新手导航传送", "大世界"}
+        combat_triggers = {"战斗中", "自动战斗检测"}
         while not self._stop:
+            if ZZZ_LOCK_PATH.exists():
+                CUS_LOGGER.warning("检测到 ZZZ_RUNNING.lock，让位绝区零并退出主循环")
+                self.stop()
+                break
+            if getattr(self, "_guard_foreground", False):
+                _, fg_title = get_hwnd_and_text()
+                if fg_title not in ("崩坏：星穹铁道", "云·星穹铁道"):
+                    CUS_LOGGER.warning("游戏窗口已失焦（当前前景：%s），暂停动作并等待切回", fg_title or "无标题")
+                    return
             self.ts.forward (self.get_screen())
+            now_mono = time.monotonic()
+            cur_digest = _screen_digest(getattr(self, "screen", None))
+            if cur_digest is not None and last_digest is not None:
+                if float(np.mean(np.abs(cur_digest - last_digest))) >= 1.8:
+                    last_digest = cur_digest
+                    freeze_since = now_mono
+                    freeze_tier = 0
+                else:
+                    freeze_elapsed = now_mono - freeze_since
+                    for target_tier, threshold in ((1, 35), (2, 65), (3, 95), (4, 145)):
+                        if freeze_tier < target_tier and freeze_elapsed >= threshold:
+                            freeze_tier = target_tier
+                            stage_tier = max(stage_tier, target_tier)
+                            repair_stage = last_noncombat_stage or self.state
+                            if not self._attempt_tiered_repair(target_tier, stage=repair_stage, reason="画面像素持续静止", elapsed=freeze_elapsed, prefix="freeze_screen"):
+                                self.stop()
+                                return
+                            break
+            elif last_digest is None and cur_digest is not None:
+                last_digest = cur_digest
+                freeze_since = now_mono
+
+            prev_seq = getattr(self, "_action_seq", 0)
             name, _ = self.run_static ()
             if name:
                 silent_time = time.time ()
                 shot_saved = False
+                silent_rounds = 0
+                if name not in nav_triggers:
+                    esc_recoveries = 0
+                executed = getattr(self, "_action_seq", 0) != prev_seq
+                if name in combat_triggers:
+                    stage_noncombat_execs = 0
+                    stage_noncombat_polls = 0
+                    stage_stagnant_since = now_mono
+                    stage_tier = 0
+                    if executed:
+                        battle_streak += 1
+                        if battle_streak > 150:
+                            shot = self._save_loop_screen("stuck_combat")
+                            CUS_LOGGER.error("战斗触发连续 %d 次未结束（疑似卡死），已存图 %s 并停机", battle_streak, shot)
+                            self.stop()
+                            break
+                    continue
+                battle_streak = 0
+                cur_stage = self._read_stage() if hasattr(self, "_read_stage") else self.state
+                if cur_stage != last_noncombat_stage:
+                    last_noncombat_stage = cur_stage
+                    stage_noncombat_execs = 1 if executed else 0
+                    stage_noncombat_polls = 1
+                    stage_stagnant_since = now_mono
+                    stage_tier = 0
+                else:
+                    stage_noncombat_polls += 1
+                    if executed:
+                        stage_noncombat_execs += 1
+                    elapsed = now_mono - stage_stagnant_since
+                    for target_tier, min_polls, threshold in ((1, 15, 45), (2, 22, 75), (3, 28, 105), (4, 34, 145)):
+                        if stage_tier < target_tier and (stage_noncombat_polls >= min_polls or stage_noncombat_execs >= min_polls - 4) and elapsed >= threshold:
+                            stage_tier = target_tier
+                            freeze_tier = max(freeze_tier, target_tier)
+                            if not self._attempt_tiered_repair(target_tier, stage=cur_stage, reason=f"阶段{cur_stage}停滞(末次:{name})", elapsed=elapsed, prefix="stuck_screen"):
+                                self.stop()
+                                return
+                            break
                 continue
-            # 无人命中超过10秒时记录整屏文字并留一张截图；战斗中长时间无触发属正常，跳过
+            # 无人命中超过10秒时记录整屏文字并留一张截图；战斗开局/过场允许短暂静默，超时照常诊断防假死
             if time.time() - silent_time > 10:
                 silent_time = time.time()
+                silent_rounds += 1
 
-                # startbattle 是一个允许长时间无 OCR 触发的等待状态
-                if self.state == "startbattle":
+                if self.state == "startbattle" and silent_rounds <= 2:
                     continue
 
-                # 其他状态保持原来的 10 秒异常诊断逻辑
+                # 其他状态或 startbattle 超时（>20s 无伤害/结算触发）进入异常诊断逻辑
                 screen_text = " ".join(
                     res["raw_text"]
                     for res in self.ts.find_with_box(
@@ -275,18 +426,30 @@ class SimulatedCurrency(CurrencyUtils):
                 CUS_LOGGER.warning("连续10秒无任何触发，当前屏幕文字：%s", screen_text)
                 if not shot_saved:
                     shot_saved = True
-                    shot = os.path.join(
-                        PATHS["temp"],
-                        "currencywar",
-                        f"unknown_screen_{time.strftime('%Y%m%d_%H%M%S')}.png",
-                    )
-                    cv2.imwrite(shot, np.array(self.screen))
+                    shot = self._save_loop_screen("unknown_screen")
                     CUS_LOGGER.warning("已保存无触发界面截图：%s", shot)
+                tier_by_round = {3: 1, 6: 2, 9: 3}.get(silent_rounds)
+                if tier_by_round is not None:
+                    self._attempt_tiered_repair(tier_by_round, stage=last_noncombat_stage or self.state, reason=f"连续{silent_rounds}轮无触发", elapsed=silent_rounds * 10, prefix="unknown_screen")
+                    if tier_by_round == 3:
+                        esc_recoveries += 1
+                        if esc_recoveries >= 4:
+                            CUS_LOGGER.error("连续 %d 轮陷入无进展往返（多次自检仍未脱离），停止任务", esc_recoveries)
+                            self.stop()
+                            break
+                elif silent_rounds >= 13:
+                    CUS_LOGGER.error("连续 %d 轮（约2分钟）未识别界面且自检无效，停止任务防止死循环", silent_rounds)
+                    self.stop()
+                    break
 
     def goto_currency (self):
-        """
-        不在货币战争中，通过星际和平指南传送至货币战争
-        """
+        """不在货币战争中时，优先交互身旁终端，否则通过星际和平指南进入货币战争。"""
+        self.ts.forward(self.get_screen())
+        if "货币战争" in self._ocr_box_text([1140, 520, 1500, 720], redundancy=15):
+            CUS_LOGGER.info("检测到货币战争终端交互提示，直接按交互键进入")
+            key_mouse_manager.press("interact")
+            key_mouse_manager.wait()
+            return
         CUS_LOGGER.info("前往货币战争")
         key_mouse_manager.press("interastral_peace_guide")
 
@@ -810,6 +973,8 @@ class SimulatedCurrency(CurrencyUtils):
         expected = (counts[0] + 1, counts[1]) if move.outgoing is None else counts
         confirmed, outgoing = self.preparation.confirm_move(move, slots, after_slots)
         if confirmed:
+            if hasattr(self, "match_db"):
+                self.match_db.record_move("bench", move.source, move.area, move.target)
             verified = move.target not in vacancies[move.area] and after_count == expected
             if not verified:
                 CUS_LOGGER.debug("角色身份变化已确认，等待人数与落点核对：%s，人数=%s", move, after_count)
@@ -930,6 +1095,16 @@ class SimulatedCurrency(CurrencyUtils):
         return 0
 
     def handle_battle_finished(self):
+        if hasattr(self, "match_db"):
+            title = ""
+            try:
+                title = self._ocr_box_text([410, 135, 1350, 410], redundancy=25)
+            except Exception:
+                title = ""
+            won = True if "挑战成功" in title or "胜利" in title else (False if "失败" in title else None)
+            hp = self._read_board_hp() if hasattr(self, "_read_board_hp") else None
+            self.match_db.record_combat_outcome(won, hp)
+            self.match_db.save()
         if self.exit_requested:
             self.update_state("exit")
         else:

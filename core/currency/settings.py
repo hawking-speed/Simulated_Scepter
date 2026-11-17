@@ -10,6 +10,20 @@ DEFAULT_EXIT_PLANE = 1
 DEFAULT_EXIT_IF_NO_PRIOR = False
 DEFAULT_PRIOR_EXIT_PLANE = None
 
+S2_DEFAULTS = {
+    "mode": "overclock",
+    "rank": "lowest",
+    "strategy": "s2_anaxa",
+    "catalog_first": True,
+    "complete_run": True,
+    "max_runs": 99,
+    "target_level": 8,
+    "max_shop_refreshes": 2,
+    "max_shop_ops": 8,
+    "resume_unfinished": True,
+    "rotation": [],
+}
+
 
 PRIORITY_KEYS = (
     "prior_envir",
@@ -159,3 +173,44 @@ def save_currency_settings(values, path=None):
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         write_data(Path(path), json.dumps(current, ensure_ascii=False, indent=4))
     return normalized
+
+
+def load_s2_settings(path=None):
+    """读取 S2「入画奇航」专用运行参数，缺省字段使用安全默认值。"""
+    path = os.fspath(config_path(__file__) if path is None else path)
+    raw = {}
+    if os.path.exists(path):
+        with EXTRA.FILE_LOCK:
+            try:
+                with open(path, encoding="utf-8") as config_file:
+                    raw = (json.load(config_file) or {}).get("s2") or {}
+            except (OSError, ValueError):
+                raw = {}
+    if not isinstance(raw, dict):
+        raw = {}
+
+    cfg = dict(S2_DEFAULTS)
+    mode = raw.get("mode")
+    if mode in ("overclock", "normal"):
+        cfg["mode"] = mode
+    rank = raw.get("rank")
+    if rank in ("lowest", "current", "highest"):
+        cfg["rank"] = rank
+    if isinstance(raw.get("strategy"), str) and raw["strategy"].strip():
+        cfg["strategy"] = raw["strategy"].strip()
+    for bool_key in ("catalog_first", "complete_run", "resume_unfinished"):
+        if isinstance(raw.get(bool_key), bool):
+            cfg[bool_key] = raw[bool_key]
+    for int_key, lo, hi in (
+        ("max_runs", 1, 999),
+        ("target_level", 4, 10),
+        ("max_shop_refreshes", 0, 10),
+        ("max_shop_ops", 1, 20),
+    ):
+        val = raw.get(int_key)
+        if isinstance(val, int) and not isinstance(val, bool) and lo <= val <= hi:
+            cfg[int_key] = val
+    rotation = raw.get("rotation")
+    if isinstance(rotation, list):
+        cfg["rotation"] = [item for item in rotation if isinstance(item, dict) and item.get("id")]
+    return cfg
